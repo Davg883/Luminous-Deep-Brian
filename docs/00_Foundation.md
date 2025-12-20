@@ -100,3 +100,11 @@ AI agents are assistive, never authoritative.
 - Content can be added without developer involvement.
 - The experience feels calm on desktop and mobile.
 - The site invites return visits without notifications.
+## 11. Gemini 3 Pro Content Intelligence Layer
+(Runtime remains deterministic; AI is backstage.)
+-   [Gemini Strategy](./01_Gemini_Strategy.md)
+-   [Content Templates](./02_Content_Templates.md)
+
+## 12. Track 001: "The Arrival" (Alpha Content)
+(Track details live in [docs/tracks/Track_001_Arrival.md](./tracks/Track_001_Arrival.md))
+
