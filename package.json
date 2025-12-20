@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx convex codegen && next build",
+    "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint",
+    "postinstall": "convex generate"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",
