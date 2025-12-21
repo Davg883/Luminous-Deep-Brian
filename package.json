@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "convex generate"
+    "postinstall": "convex codegen"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",
