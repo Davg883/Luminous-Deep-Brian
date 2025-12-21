@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Libre_Baskerville, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/auth/ConvexClientProvider";
+import AmbientEngine from "@/components/narrative/AmbientEngine";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,9 +35,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${libreBaskerville.variable} ${jetbrainsMono.variable} antialiased`}>
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ConvexClientProvider>
+          <AmbientEngine />
+          {children}
+        </ConvexClientProvider>
       </body>
     </html>
   );

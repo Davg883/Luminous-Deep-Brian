@@ -105,7 +105,7 @@ export default defineSchema({
         publicId: v.string(),
         url: v.string(),
         resourceType: v.string(), // image, video, raw
-        folder: v.string(),
+        folder: v.optional(v.string()),
         format: v.string(),
         bytes: v.number(),
         width: v.optional(v.number()),

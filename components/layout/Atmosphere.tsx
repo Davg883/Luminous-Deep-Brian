@@ -6,11 +6,12 @@ import type { Domain } from "@/lib/types";
 
 interface AtmosphereProps {
     domain: Domain;
+    className?: string; // Allow override
 }
 
-export default function Atmosphere({ domain }: AtmosphereProps) {
+export default function Atmosphere({ domain, className }: AtmosphereProps) {
     return (
-        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className={clsx("inset-0 -z-10 overflow-hidden pointer-events-none", className || "fixed")}>
             {domain === "study" && <StudyAtmosphere />}
             {domain === "workshop" && <WorkshopAtmosphere />}
             {domain === "boathouse" && <BoathouseAtmosphere />}

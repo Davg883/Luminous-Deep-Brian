@@ -24,6 +24,13 @@ export default function Home() {
             <SceneStage mediaUrl={scene.backgroundMediaUrl}>
             </SceneStage>
 
+            {/* The Arrival Line */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                <h1 className="font-serif text-2xl md:text-3xl text-driftwood opacity-60 italic tracking-widest text-center max-w-2xl leading-relaxed animate-in fade-in duration-1000 slide-in-from-bottom-4">
+                    "You’ve arrived at a place where intelligence slows down enough to be understood."
+                </h1>
+            </div>
+
             <TheDock />
         </main>
     );

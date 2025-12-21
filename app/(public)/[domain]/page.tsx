@@ -15,10 +15,18 @@ import { Id } from "@/convex/_generated/dataModel";
 export default function DomainPage() {
     const params = useParams();
     // Safe cast params.domain to our Domain type (in real app validate this)
-    const domain = (params.domain as Domain) || "workshop";
+    const domain = (params.domain as string);
+
+    // Strict Domain Validation
+    const validDomains = ["workshop", "study", "boathouse", "home"];
+    if (!validDomains.includes(domain)) {
+        // If we are mistakenly catching 'studio' or other routes, let's explicit fail
+        return <div className="p-10 text-red-500">Invalid Domain: {domain}</div>;
+    }
 
     // Fetch scene by slug == domain (for MVP)
-    const scene = useQuery(api.public.scenes.getScene, { slug: domain });
+    const validatedDomain = domain as Domain;
+    const scene = useQuery(api.public.scenes.getScene, { slug: validatedDomain });
     const objects = useQuery(api.public.scenes.getSceneObjects,
         scene ? { sceneId: scene._id } : "skip"
     );
@@ -42,17 +50,17 @@ export default function DomainPage() {
     return (
         <>
             {/* Background Atmosphere */}
-            <Atmosphere domain={domain} />
+            <Atmosphere domain={validatedDomain} />
 
             {/* Main Stage */}
-            <SceneStage mediaUrl={scene.backgroundMediaUrl}>
+            <SceneStage mediaUrl={scene.backgroundMediaUrl} isFocused={!!activeRevealId}>
                 {objects?.map((obj) => (
                     <ObjectTrigger
                         key={obj._id}
                         x={obj.x}
                         y={obj.y}
                         label={obj.name}
-                        domain={domain}
+                        domain={validatedDomain}
                         onClick={() => setActiveRevealId(obj.revealId)}
                     />
                 ))}
@@ -69,7 +77,7 @@ export default function DomainPage() {
                 content={activeReveal?.content || ""}
                 type={activeReveal?.type || "text"}
                 mediaUrl={activeReveal?.mediaUrl}
-                domain={domain}
+                domain={validatedDomain}
             />
         </>
     );

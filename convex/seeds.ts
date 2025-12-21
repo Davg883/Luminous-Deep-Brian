@@ -165,7 +165,32 @@ export const seedAll = mutation({
             ["creation"]
         );
 
-        return "Initial Canon Seeded via seedAll (Home, Study, Workshop)";
+        // 4. Boathouse (Julian)
+        await upsertSceneFull(
+            ctx,
+            "boathouse",
+            "The Boathouse",
+            "boathouse",
+            "", // Placeholder, will rely on sync or fallback
+            [
+                {
+                    name: "Tide Chart",
+                    x: 60, y: 40,
+                    role: "canon",
+                    revealType: "text",
+                    revealTitle: "Julian's Log #1",
+                    revealContent: "The tides are shifting. Highest crest in five years expected tonight. The timbers are groaning properly now—this old place likes the strain. If the sea wants in, it'll have to knock harder than that.",
+                    hint: "Check tide chart",
+                    voice: "julian",
+                    revealTags: ["log", "canon"],
+                    status: "published",
+                    publishedAt: Date.now(),
+                }
+            ],
+            ["nature"]
+        );
+
+        return "Initial Canon Seeded via seedAll (Home, Study, Workshop, Boathouse)";
     }
 });
 

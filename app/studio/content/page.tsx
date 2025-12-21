@@ -17,12 +17,12 @@ function MediaResolverStatus({ publicId }: { publicId: string }) {
     return (
         <div className="flex items-center gap-1.5 bg-green-900/50 text-green-300 px-2 py-1 rounded text-[10px] font-bold border border-green-700/50">
             <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
-            RESOLVED: {asset.resourceType.toUpperCase()}
+            RESOLVED: {asset.resourceType?.toUpperCase() || "UNKNOWN"}
         </div>
     );
 }
 
-type Tab = "Library" | "Review" | "Import" | "Scenes";
+type Tab = "Library" | "Review" | "Write" | "Scenes";
 
 
 export default function ContentFactoryPage() {
@@ -55,22 +55,20 @@ export default function ContentFactoryPage() {
         if (!jsonInput) return;
         setIsProcessingAI(true);
         try {
-            const prompt = `You are a creative technical writer for a mystery game. 
-            Review the following JSON content pack. Improve the 'body_copy' to be atmospheric, subtle, and consistent with the domain. 
-            Ensure strict JSON validity.
-            
-            Input:
-            ${jsonInput}
-            
-            Return ONLY the valid JSON with no markdown formatting.`;
+            // The prompt is now dynamically handled by convex/studio/ai.ts based on format
+            // If it's pure text, the backend will treat it as a "Convert to JSON" task.
+            // If it's JSON, the backend will treat it as a "Refine" task.
+            const refinedJson = await generateContent({
+                prompt: jsonInput,
+                voice: selectedSceneId === "scenes:boathouse" ? "julian" : selectedSceneId === "scenes:study" ? "eleanor" : "cassie" // Naive voice selection for now
+            });
 
-            const refinedJson = await generateContent({ prompt });
-            // Clean up markdown block if present
+            // Clean up markdown block if present (redundant check, but safe)
             const cleanJson = refinedJson.replace(/```json/g, '').replace(/```/g, '').trim();
             setJsonInput(cleanJson);
             validateJson(cleanJson);
         } catch (e) {
-            alert("AI processing failed.");
+            alert("AI processing failed. Please try again.");
         } finally {
             setIsProcessingAI(false);
         }
@@ -78,32 +76,44 @@ export default function ContentFactoryPage() {
 
     const validateJson = (input: string) => {
         try {
-            const data = JSON.parse(input);
+            const raw = JSON.parse(input);
+            const data = Array.isArray(raw) ? raw[0] : raw; // Handle array input for preview validation
+
             const errors: string[] = [];
             const warnings: string[] = [];
 
-            if (!data.hotspot_id) errors.push("Missing hotspot_id");
-            if (!data.domain) errors.push("Missing domain");
-            if (!data.hotspot_title) errors.push("Missing hotspot_title");
-            if (!data.reveal_type) errors.push("Missing reveal_type");
-            if (!data.body_copy) errors.push("Missing body_copy");
+            // The "Everything Mapper" normalization
+            const normalized = {
+                hotspotId: data.hotspot_id || data.hotspotId || (data.title ? data.title.toLowerCase().replace(/[^a-z0-9]+/g, '_') : ""),
+                title: (!data.title || data.title === "Enter Title" || data.title === "Untitled") ? "A New Discovery" : data.title,
+                sceneSlug: data.scene_slug || data.sceneSlug || data.domain || "workshop",
+                bodyCopy: data.content || data.body_copy || data.bodyCopy || "",
+                hintLine: data.hint || data.hint_line || data.hintLine || "",
+                revealType: data.type || data.revealType || "text",
+                tags: data.tags || [],
+                canonRefs: data.canon_refs || data.canonRefs || [],
+                mediaRefs: data.media_refs || data.mediaRefs || "",
+                version: data.version || 1
+            };
 
-            if (data.body_copy && (data.body_copy.length < 50 || data.body_copy.length > 2000)) {
-                warnings.push("Body copy length is outside the ideal range (150-300 words recommended).");
-            }
-            if (!data.tags || data.tags.length === 0) warnings.push("Missing tags (required for discovery).");
-            if (!data.canon_refs || data.canon_refs.length === 0) warnings.push("Missing canon_refs.");
-            if (!data.media_refs) warnings.push("Missing media_refs.");
+            // Validation Logic
+            if (!normalized.hotspotId) errors.push("Missing hotspot_id (could not auto-generate)");
+            // if (!normalized.sceneSlug) warnings.push("Missing scene_slug (using default)"); // defaulted above
+            if (!data.title || data.title === "Enter Title") warnings.push("Title was placeholder (auto-renamed to 'A New Discovery')");
+            if (!normalized.bodyCopy) errors.push("Missing content");
 
             setValidationResult({ errors, warnings });
+
             if (errors.length === 0) {
-                setPreviewData(data);
+                setPreviewData({
+                    ...data, // Keep original raw props too just in case
+                    ...normalized // Override with normalized
+                });
             } else {
                 setPreviewData(null);
             }
         } catch (e) {
-            setValidationResult({ errors: ["Invalid JSON format"], warnings: [] });
-            setPreviewData(null);
+            // Silent fail for in-progress typing
         }
     };
 
@@ -111,26 +121,40 @@ export default function ContentFactoryPage() {
         if (!jsonInput || !selectedSceneId) return;
 
         try {
-            const data = JSON.parse(jsonInput);
-            const items = Array.isArray(data) ? data : [data];
+            const raw = JSON.parse(jsonInput);
+            const items = Array.isArray(raw) ? raw : [raw];
 
             let successCount = 0;
             let conflictPack = null;
 
             for (const item of items) {
-                const result: any = await importPack({
-                    hotspotId: item.hotspot_id,
-                    domain: item.domain,
-                    sceneId: selectedSceneId as Id<"scenes">,
-                    title: item.hotspot_title,
-                    revealType: item.reveal_type,
-                    bodyCopy: item.body_copy,
-                    hintLine: item.hint_line,
+                // The "Everything Mapper" normalization (Repeated for safety)
+                const normalized = {
+                    hotspotId: item.hotspot_id || item.hotspotId || (item.title ? item.title.toLowerCase().replace(/[^a-z0-9]+/g, '_') : `hotspot_${Date.now()}`),
+                    title: (!item.title || item.title === "Enter Title" || item.title === "Untitled") ? "A New Discovery" : item.title,
+                    sceneSlug: item.scene_slug || item.sceneSlug || item.domain || "workshop",
+                    bodyCopy: item.content || item.body_copy || item.bodyCopy || "",
+                    hintLine: item.hint || item.hint_line || item.hintLine || "Inspect closer.",
+                    revealType: item.type || item.revealType || "text",
                     tags: item.tags || [],
-                    canonRefs: item.canon_refs || [],
-                    mediaRefs: item.media_refs || "",
+                    canonRefs: item.canon_refs || item.canonRefs || [],
+                    mediaRefs: item.media_refs || item.mediaRefs || "",
+                    version: item.version || 1
+                };
+
+                const result: any = await importPack({
+                    hotspotId: normalized.hotspotId,
+                    domain: normalized.sceneSlug,
+                    sceneId: selectedSceneId as Id<"scenes">,
+                    title: normalized.title,
+                    revealType: normalized.revealType,
+                    bodyCopy: normalized.bodyCopy,
+                    hintLine: normalized.hintLine,
+                    tags: normalized.tags,
+                    canonRefs: normalized.canonRefs,
+                    mediaRefs: normalized.mediaRefs,
                     status: "Draft",
-                    version: item.version || 1,
+                    version: normalized.version,
                     overwriteConfirmed: forceOverwrite
                 });
 
@@ -178,10 +202,11 @@ export default function ContentFactoryPage() {
                     <p className="text-gray-500 text-sm">Draft, Review, and Publish the Luminous Deep experience.</p>
                 </div>
                 <div className="flex bg-gray-100 p-1 rounded-lg">
-                    {(["Library", "Review", "Import", "Scenes"] as Tab[]).map((tab) => (
+                    {/* Rename Import to "Drop a Story Fragment" or just "Write" */}
+                    {(["Library", "Review", "Write", "Scenes"] as const).map((tab) => (
                         <button
                             key={tab}
-                            onClick={() => setActiveTab(tab)}
+                            onClick={() => setActiveTab(tab as any)} // Cast just for the loop
                             className={clsx(
                                 "px-6 py-1.5 rounded-md text-sm font-bold transition-all",
                                 activeTab === tab ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
@@ -341,7 +366,11 @@ export default function ContentFactoryPage() {
                     <div className="flex flex-col h-[80vh]">
                         <h2 className="text-lg font-bold mb-4">Selected Preview</h2>
                         {previewData ? (
-                            <ContentPreview pack={previewData} sceneTitle={(scenes || []).find((s: any) => s._id === previewData.sceneId)?.title} />
+                            <ContentPreview
+                                pack={previewData}
+                                sceneTitle={(scenes || []).find((s: any) => s._id === previewData.sceneId)?.title}
+                                sceneBackgroundUrl={(scenes || []).find((s: any) => s._id === previewData.sceneId)?.backgroundMediaUrl}
+                            />
                         ) : (
                             <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-center p-12">
                                 <p>Select an item from the queue to preview it as the user will see it.</p>
@@ -351,12 +380,12 @@ export default function ContentFactoryPage() {
                 </div>
             )}
 
-            {/* TAB: IMPORT */}
-            {activeTab === "Import" && (
+            {/* TAB: WRITE (Formerly Import) */}
+            {activeTab === "Write" && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[75vh]">
                     <div className="flex flex-col gap-4">
                         <div className="flex justify-between items-center">
-                            <h2 className="text-lg font-bold">Import Content Pack</h2>
+                            <h2 className="text-lg font-bold">Drop a Story Fragment</h2>
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleAIProcess}
@@ -366,11 +395,11 @@ export default function ContentFactoryPage() {
                                     {isProcessingAI ? (
                                         <>
                                             <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                            Refining...
+                                            Processing...
                                         </>
                                     ) : (
                                         <>
-                                            <span>✨</span> Refine with Gemini
+                                            <span>✨</span> Magic Paste (Gemini)
                                         </>
                                     )}
                                 </button>
@@ -378,7 +407,7 @@ export default function ContentFactoryPage() {
                                     onClick={() => validateJson(jsonInput)}
                                     className="bg-indigo-600 text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
                                 >
-                                    Validate JSON
+                                    Validate
                                 </button>
                                 <button
                                     onClick={() => handleImport(false)}
@@ -401,7 +430,7 @@ export default function ContentFactoryPage() {
                                             className="w-full text-sm font-bold border-none bg-gray-50 rounded-md p-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
                                         >
                                             <option value="">Select a scene...</option>
-                                            {(scenes || []).map((s: any) => <option key={s._id} value={s._id}>{s.title} ({s.domain})</option>)}
+                                            {(scenes || []).map((s: any) => <option key={s?._id} value={s?._id}>{s?.title} ({s?.domain})</option>)}
                                         </select>
                                     </div>
                                     <div className="flex items-end">
@@ -410,12 +439,11 @@ export default function ContentFactoryPage() {
                                                 const scene = (scenes || []).find((s: any) => s._id === selectedSceneId);
                                                 const template = {
                                                     "hotspot_id": `${scene?.slug || "scene"}_hotspot_${Date.now()}`,
-                                                    "domain": scene?.domain || "Home",
-                                                    "scene_id": scene?.slug || "home",
-                                                    "hotspot_title": "Enter Title",
-                                                    "reveal_type": "text",
-                                                    "body_copy": "The tide ripples against the pilings...",
-                                                    "hint_line": "Look closer at the wood.",
+                                                    "scene_slug": scene?.slug || "home",
+                                                    "title": "Enter Title",
+                                                    "type": "text",
+                                                    "content": "The tide ripples against the pilings...",
+                                                    "hint": "Look closer at the wood.",
                                                     "tags": ["discovery"],
                                                     "canon_refs": ["sea"],
                                                     "media_refs": "LD_HOME/Tide_Video",
@@ -434,10 +462,11 @@ export default function ContentFactoryPage() {
                             <div className="flex-1 relative">
                                 <textarea
                                     className="w-full h-full bg-gray-900 text-indigo-300 font-mono text-xs p-6 rounded-xl border border-gray-700 shadow-xl outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
-                                    placeholder='{ "hotspot_id": "...", ... }'
+                                    placeholder='Paste a raw story fragment here, then click "Magic Paste"...'
                                     value={jsonInput}
                                     onChange={(e) => {
                                         setJsonInput(e.target.value);
+                                        // Only validate if it ends with close brace, otherwise silent
                                         if (e.target.value.trim().endsWith("}")) validateJson(e.target.value);
                                     }}
                                 />
@@ -450,19 +479,19 @@ export default function ContentFactoryPage() {
 
                         </div>
 
-                        {validationResult && (
+                        {validationResult && (validationResult.errors.length > 0 || validationResult.warnings.length > 0) && (
                             <div className={clsx(
                                 "p-4 rounded-xl border text-xs font-medium space-y-1",
                                 validationResult.errors.length > 0 ? "bg-red-50 border-red-100 text-red-800" : "bg-green-50 border-green-100 text-green-800"
                             )}>
                                 {validationResult.errors.length > 0 ? (
                                     <>
-                                        <p className="font-black uppercase tracking-widest text-[10px] mb-2">Critical Errors</p>
+                                        <p className="font-black uppercase tracking-widest text-[10px] mb-2">Needs Attention</p>
                                         {validationResult.errors.map(e => <div key={e}>• {e}</div>)}
                                     </>
                                 ) : (
                                     <>
-                                        <p className="font-black uppercase tracking-widest text-[10px] mb-2 text-green-600">Structure Valid</p>
+                                        <p className="font-black uppercase tracking-widest text-[10px] mb-2 text-green-600">Ready to Import</p>
                                         {validationResult.warnings.map(w => <div key={w} className="text-yellow-700">• {w}</div>)}
                                     </>
                                 )}
@@ -473,10 +502,14 @@ export default function ContentFactoryPage() {
                     <div className="flex flex-col gap-4">
                         <h2 className="text-lg font-bold">Import Preview</h2>
                         {previewData ? (
-                            <ContentPreview pack={previewData} sceneTitle={(scenes || []).find((s: any) => s._id === selectedSceneId)?.title} />
+                            <ContentPreview
+                                pack={previewData}
+                                sceneTitle={(scenes || []).find((s: any) => s._id === selectedSceneId)?.title}
+                                sceneBackgroundUrl={(scenes || []).find((s: any) => s._id === selectedSceneId)?.backgroundMediaUrl}
+                            />
                         ) : (
                             <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-center p-12">
-                                <p>Enter valid JSON and select a scene to see the end-user preview.</p>
+                                <p>Write or paste your story, then click 'Magic Paste' to visualize it.</p>
                             </div>
                         )}
                     </div>

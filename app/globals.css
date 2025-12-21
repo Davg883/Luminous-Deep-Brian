@@ -2,8 +2,10 @@
 
 :root {
   /* Seagrove Palette (Global) */
-  --sand: #fdfcf8;
-  --sea: #3e5c76;
+  --sand: #fbf8f3;
+  /* Warmer, 3000K feel */
+  --sea: #364f6b;
+  /* Cooler, deeper 6000K feel */
   --driftwood: #4a4a4a;
   --mist: #eef2f6;
 
@@ -55,4 +57,30 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+@layer utilities {
+  .glass-morphic {
+    @apply backdrop-blur-xl bg-white/5 border border-white/10 relative overflow-hidden transition-all duration-300;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .glass-morphic::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(125deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.05) 40%, rgba(255, 255, 255, 0) 100%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .glass-morphic:hover::before {
+    opacity: 1;
+  }
+
+  .foveal-focus {
+    @apply transition-all duration-700 ease-in-out;
+  }
 }

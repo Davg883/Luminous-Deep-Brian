@@ -1,9 +1,12 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { XMarkIcon } from "@heroicons/react/24/outline";
+import { motion, AnimatePresence, Variants } from "framer-motion";
+import { XMarkIcon, Cog6ToothIcon, MapIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import type { RevealType, Domain } from "@/lib/types";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { useState, useEffect } from "react";
 
 interface RevealCardProps {
     title: string;
@@ -13,7 +16,40 @@ interface RevealCardProps {
     isOpen: boolean;
     onClose: () => void;
     mediaUrl?: string;
+    isEmbedded?: boolean;
 }
+
+const contentVariants: Variants = {
+    hidden: {},
+    visible: {
+        transition: {
+            staggerChildren: 0.5,
+            delayChildren: 0.3
+        }
+    }
+};
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, filter: "blur(10px)", y: 10 },
+    visible: {
+        opacity: 1,
+        filter: "blur(0px)",
+        y: 0,
+        transition: { duration: 1.2, ease: "easeOut" }
+    }
+};
+
+// Custom Motion Components to fix Type Mismatches with ReactMarkdown
+const MotionParagraph = ({ children, ...props }: any) => (
+    <motion.p variants={itemVariants} {...props}>
+        {children}
+    </motion.p>
+);
+
+const MotionH1 = ({ children, ...props }: any) => <motion.h1 variants={itemVariants} {...props}>{children}</motion.h1>;
+const MotionH2 = ({ children, ...props }: any) => <motion.h2 variants={itemVariants} {...props}>{children}</motion.h2>;
+const MotionH3 = ({ children, ...props }: any) => <motion.h3 variants={itemVariants} {...props}>{children}</motion.h3>;
+const MotionLi = ({ children, ...props }: any) => <motion.li variants={itemVariants} {...props}>{children}</motion.li>;
 
 export default function RevealCard({
     title,
@@ -22,78 +58,158 @@ export default function RevealCard({
     domain = "workshop",
     isOpen,
     onClose,
-    mediaUrl
+    mediaUrl,
+    isEmbedded = false
 }: RevealCardProps) {
+    const [canClose, setCanClose] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setCanClose(false);
+            const timer = setTimeout(() => setCanClose(true), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
 
     return (
         <AnimatePresence>
             {isOpen && (
                 <>
-                    {/* Backdrop */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
-                    />
+                    {/* Backdrop (Only show if NOT embedded) */}
+                    {!isEmbedded && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => canClose && onClose()}
+                            className={clsx(
+                                "fixed inset-0 z-40 bg-black/20 backdrop-blur-sm transition-cursor",
+                                canClose ? "cursor-pointer" : "cursor-wait"
+                            )}
+                        />
+                    )}
 
                     {/* Card */}
                     <motion.div
-                        initial={{ y: "100%", opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: "100%", opacity: 0 }}
+                        initial={isEmbedded ? { opacity: 0, scale: 0.95 } : { y: "100%", opacity: 0 }}
+                        animate={isEmbedded ? { opacity: 1, scale: 1 } : { y: 0, opacity: 1 }}
+                        exit={isEmbedded ? { opacity: 0, scale: 0.95 } : { y: "100%", opacity: 0 }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
                         className={clsx(
-                            "fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:w-96 z-50 p-6 rounded-2xl shadow-2xl",
-                            domain === "study" && "bg-study-bg/95 text-study-paper font-serif border border-study-paper/20",
-                            domain === "workshop" && "bg-sand/95 text-driftwood font-sans border border-orange-200",
-                            domain === "boathouse" && "bg-boat-bg/95 text-boat-line font-mono border border-boat-line/30"
+                            isEmbedded ? "relative w-full h-full flex flex-col shadow-none rounded-xl" : "fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:w-96 z-50 rounded-sm shadow-2xl flex flex-col max-h-[70vh]",
+                            "overflow-hidden",
+                            // Eleanor (Study): Journal Aesthetic
+                            domain === "study" && "bg-[#fcfaf2] text-stone-900 font-serif border-2 border-amber-900/10 shadow-[4px_4px_0px_rgba(44,28,20,0.1)]",
+                            // Julian (Boathouse): Technical Log
+                            domain === "boathouse" && "bg-stone-950 text-sky-100 font-mono border-l-4 border-sky-600 shadow-2xl ring-1 ring-white/10",
+                            // Cassie (Workshop): Draft Aesthetic
+                            domain === "workshop" && "bg-white text-stone-800 font-sans border border-stone-200 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)] rotate-1",
+                            // Home: Neutral Glass
+                            domain === "home" && "bg-white/90 backdrop-blur-md text-driftwood border border-white/20"
                         )}
                     >
-                        <div className="flex justify-between items-start mb-4">
-                            <h3 className="text-xl font-bold">{title}</h3>
-                            <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors">
-                                <XMarkIcon className="w-6 h-6" />
-                            </button>
+                        {/* Dwell Progress Bar */}
+                        <div className="h-1 bg-current opacity-10 w-full absolute top-0 left-0 z-10">
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: "100%" }}
+                                transition={{ duration: 3, ease: "linear" }}
+                                className="h-full bg-current opacity-50"
+                            />
                         </div>
 
-                        <div className="prose prose-sm max-w-none">
+                        {/* Header */}
+                        <div className="p-6 pb-0 flex-shrink-0">
+                            <div className="flex justify-between items-start mb-4 border-b border-current/10 pb-4">
+                                <h3 className={clsx("text-lg font-bold tracking-tight", domain === "boathouse" && "uppercase tracking-widest text-xs")}>
+                                    {title}
+                                </h3>
+                                <button
+                                    onClick={onClose}
+                                    disabled={!canClose}
+                                    className={clsx(
+                                        "p-1 transition-all duration-500",
+                                        canClose ? "opacity-100 hover:opacity-50 cursor-pointer" : "opacity-20 cursor-wait"
+                                    )}
+                                >
+                                    <XMarkIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content Scroll Area */}
+                        <div className={clsx(
+                            "flex-1 overflow-y-auto p-6 pt-0 custom-scrollbar",
+                            "prose prose-sm max-w-none",
+                            domain === "study" && "prose-p:text-stone-800 prose-headings:font-serif",
+                            domain === "boathouse" && "prose-p:text-sky-100/80 prose-headings:text-sky-400 prose-code:text-sky-300",
+                            domain === "workshop" && "prose-p:text-stone-600 prose-strong:text-orange-600"
+                        )}>
                             {/* Media Handler */}
-                            {type === 'image' && mediaUrl && (
-                                <div className="mb-4 rounded-lg overflow-hidden border border-white/10">
-                                    <img src={mediaUrl} alt={title} className="w-full h-auto" />
-                                </div>
-                            )}
-
-                            {type === 'video' && mediaUrl && (
-                                <div className="mb-4 rounded-lg overflow-hidden border border-white/10">
-                                    <video src={mediaUrl} controls className="w-full h-auto" />
-                                </div>
-                            )}
-
-                            {type === 'audio' && (
-                                <div className="mb-4 p-4 bg-black/5 rounded-lg border border-black/5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-sea flex items-center justify-center text-white">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                                                <path fillRule="evenodd" d="M19.952 1.651a.75.75 0 0 1 .298 1.06 10.502 10.502 0 0 1-5.463 9.226c-1.12.554-1.57 1.7-1.57 2.506 0 1.255-1.096 2.358-2.58 2.586C8.809 17.315 7.5 18.809 7.5 20.25a.75.75 0 0 1-1.5 0c0-2.281 2.056-4.382 4.418-4.75 1.144-.178 1.582-.904 1.582-1.5 0-.256-.055-.658.077-1.298C12.87 11.233 13.967 8 16.5 8c.556 0 1.004-.448 1.004-1.006A7.502 7.502 0 0 0 11.45.08a.75.75 0 0 1 .537-1.4 9.002 9.002 0 0 1 7.965 2.97Z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        <div className="text-xs font-bold uppercase opacity-50 tracking-wider">Audio Record</div>
+                            <motion.div variants={itemVariants} className="w-full">
+                                {type === 'image' && mediaUrl && (
+                                    <div className="mb-4 rounded overflow-hidden border border-current/10">
+                                        <img src={mediaUrl} alt={title} className="w-full h-auto grayscale hover:grayscale-0 transition-all duration-700" />
                                     </div>
-                                    {mediaUrl && <audio src={mediaUrl} controls className="w-full mt-3 h-8" />}
-                                </div>
-                            )}
+                                )}
 
-                            <p className={clsx(
-                                "leading-relaxed whitespace-pre-wrap",
-                                domain === "study" && "text-study-paper/80",
-                                domain === "workshop" && "text-driftwood/80",
-                                domain === "boathouse" && "text-boat-line/80"
-                            )}>
-                                {content}
-                            </p>
+                                {type === 'video' && mediaUrl && (
+                                    <div className="mb-4 rounded overflow-hidden border border-current/10">
+                                        <video src={mediaUrl} controls className="w-full h-auto" />
+                                    </div>
+                                )}
+
+                                {type === 'audio' && (
+                                    <div className="mb-4 p-3 bg-current/5 rounded border border-current/10">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                            <span className="text-[10px] uppercase font-bold opacity-60">Audio Log</span>
+                                        </div>
+                                        {mediaUrl && <audio src={mediaUrl} controls className="w-full h-8 opacity-80 hover:opacity-100 transition-opacity" />}
+                                    </div>
+                                )}
+                            </motion.div>
+
+                            <motion.div
+                                initial="hidden"
+                                animate="visible"
+                                variants={contentVariants}
+                            >
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        p: MotionParagraph,
+                                        h1: MotionH1,
+                                        h2: MotionH2,
+                                        h3: MotionH3,
+                                        li: MotionLi,
+                                    }}
+                                >
+                                    {content}
+                                </ReactMarkdown>
+                            </motion.div>
+                        </div>
+
+                        {/* Domain Signature Footer */}
+                        <div className="p-4 pt-2 flex justify-center opacity-40 border-t border-current/5 mt-auto">
+                            {domain === 'study' ? (
+                                <div className="flex flex-col items-center gap-1" title="Eleanor's Journal">
+                                    <PencilSquareIcon className="w-4 h-4" />
+                                    <span className="text-[10px] font-script">E.V.</span>
+                                </div>
+                            ) : domain === 'boathouse' ? (
+                                <div className="flex flex-col items-center gap-1" title="Julian's Log">
+                                    <MapIcon className="w-4 h-4" />
+                                    <span className="text-[10px] font-mono tracking-widest">J.W.</span>
+                                </div>
+                            ) : domain === 'workshop' ? (
+                                <div className="flex flex-col items-center gap-1" title="Cassie's Drafts">
+                                    <Cog6ToothIcon className="w-4 h-4" />
+                                    <span className="text-[10px] font-handwriting -rotate-3">C.L.</span>
+                                </div>
+                            ) : (
+                                <div className="w-8 h-1 bg-current rounded-full opacity-20" />
+                            )}
                         </div>
                     </motion.div>
                 </>
