@@ -11,8 +11,6 @@ interface SceneStageProps {
 }
 
 export default function SceneStage({ mediaUrl, children, isFocused = false }: SceneStageProps) {
-    // Fallback placeholder if no mediaUrl provided
-    const bgSrc = mediaUrl || "https://images.unsplash.com/photo-1598367772323-3be63e1136dc?q=80&w=2670&auto=format&fit=crop";
 
     return (
         <div className="relative w-full h-screen overflow-hidden bg-stone-900 border-b border-driftwood/20">
@@ -27,9 +25,11 @@ export default function SceneStage({ mediaUrl, children, isFocused = false }: Sc
             >
                 {/* Media Handling */}
                 <div className="absolute inset-0">
-                    {bgSrc.match(/\.(mp4|webm|mov)$/i) ? (
+                    {!mediaUrl ? (
+                        <div className="w-full h-full bg-slate-900 animate-pulse" />
+                    ) : mediaUrl.match(/\.(mp4|webm|mov)$/i) ? (
                         <video
-                            src={bgSrc}
+                            src={mediaUrl}
                             autoPlay
                             muted
                             loop
@@ -54,7 +54,7 @@ export default function SceneStage({ mediaUrl, children, isFocused = false }: Sc
                             className="w-full h-full relative"
                         >
                             <Image
-                                src={bgSrc}
+                                src={mediaUrl}
                                 alt="Scene Background"
                                 fill
                                 className="object-cover opacity-90"
