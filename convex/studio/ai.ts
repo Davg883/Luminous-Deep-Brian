@@ -17,7 +17,7 @@ export const generateContent = action({
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: args.model || "gemini-1.5-flash",
+            model: "models/gemini-3-flash-preview",
             generationConfig: { responseMimeType: "application/json" }
         });
 
@@ -124,14 +124,13 @@ export const generateContent = action({
         let text = response.text();
 
         // Aggressive "Fuzzy" JSON Cleaner
-        // Finds the first '{' or '[' and the last '}' or ']'
-        const firstBrace = text.search(/[\{\[]/);
-        const lastBrace = text.search(/[\}\]](?!.*[\}\]])/); // Last occurrence
+        // Finds everything between the first '{' and the last '}'
+        const match = text.match(/\{[\s\S]*\}/);
 
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            text = text.substring(firstBrace, lastBrace + 1);
+        if (match) {
+            text = match[0];
         } else {
-            // Fallback for markdown stripping if regex fails
+            // Fallback: If no braces found, strip markdown but return text (it might be a partial fragment)
             text = text.replace(/```json/g, "").replace(/```/g, "").trim();
         }
 
