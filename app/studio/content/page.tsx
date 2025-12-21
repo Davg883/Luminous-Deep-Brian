@@ -118,7 +118,7 @@ export default function ContentFactoryPage() {
     };
 
     const handleImport = async (forceOverwrite = false) => {
-        if (!jsonInput || !selectedSceneId) return;
+        if (!jsonInput) return; // selectedSceneId is optional if JSON has it
 
         try {
             const raw = JSON.parse(jsonInput);
@@ -142,10 +142,19 @@ export default function ContentFactoryPage() {
                     version: item.version || 1
                 };
 
+                // Resolve Scene ID
+                const targetScene = (scenes || []).find((s: any) => s.slug === normalized.sceneSlug)
+                    || (scenes || []).find((s: any) => s._id === selectedSceneId);
+
+                if (!targetScene) {
+                    alert(`Could not resolve scene for slug '${normalized.sceneSlug}'. Please select a scene.`);
+                    return;
+                }
+
                 const result: any = await importPack({
                     hotspotId: normalized.hotspotId,
                     domain: normalized.sceneSlug,
-                    sceneId: selectedSceneId as Id<"scenes">,
+                    sceneId: targetScene._id,
                     title: normalized.title,
                     revealType: normalized.revealType,
                     bodyCopy: normalized.bodyCopy,
@@ -173,9 +182,13 @@ export default function ContentFactoryPage() {
             setJsonInput("");
             setPreviewData(null);
             setValidationResult(null);
-            setActiveTab("Library");
-            alert(`Import complete: ${successCount} packs saved as Draft.`);
+
+            // Success Feedback
+            alert(`Success! ${successCount} draft(s) saved to Review Queue.`);
+            setActiveTab("Review");
+
         } catch (e) {
+            console.error(e);
             alert("Import failed. Check JSON format.");
         }
     };
@@ -411,7 +424,7 @@ export default function ContentFactoryPage() {
                                 </button>
                                 <button
                                     onClick={() => handleImport(false)}
-                                    disabled={!previewData || !selectedSceneId}
+                                    disabled={!previewData}
                                     className="bg-green-600 text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Save as Draft
@@ -437,16 +450,33 @@ export default function ContentFactoryPage() {
                                         <button
                                             onClick={() => {
                                                 const scene = (scenes || []).find((s: any) => s._id === selectedSceneId);
+                                                const domain = scene?.domain || "workshop";
+
+                                                let content = "The tide ripples against the pilings of the harbour...";
+                                                let hint = "Look closer at the grey timber.";
+                                                let title = "The Harbour Lights";
+
+                                                // Context-Aware Templates
+                                                if (domain === "workshop") {
+                                                    content = "The gears spark with kinetic potential...";
+                                                    hint = "Check the alignment.";
+                                                    title = "Sparks of Industry";
+                                                } else if (domain === "study") {
+                                                    content = "The dust motes dance in the shaft of sunlight...";
+                                                    hint = "A memory lingers here.";
+                                                    title = "The Memory of Dust";
+                                                }
+
                                                 const template = {
                                                     "hotspot_id": `${scene?.slug || "scene"}_hotspot_${Date.now()}`,
                                                     "scene_slug": scene?.slug || "home",
-                                                    "title": "Enter Title",
+                                                    "title": title,
                                                     "type": "text",
-                                                    "content": "The tide ripples against the pilings of the harbour...",
-                                                    "hint": "Look closer at the grey timber.",
+                                                    "content": content,
+                                                    "hint": hint,
                                                     "tags": ["discovery"],
                                                     "canon_refs": ["sea"],
-                                                    "media_refs": "LD_HOME/Tide_Video",
+                                                    "media_refs": "",
                                                     "version": 1
                                                 };
                                                 setJsonInput(JSON.stringify(template, null, 2));
