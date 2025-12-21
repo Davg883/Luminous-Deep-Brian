@@ -64,7 +64,28 @@ export default function ContentFactoryPage() {
             console.log("AI Response Raw:", refinedJson);
 
             // Clean up markdown block
-            const cleanJson = refinedJson.replace(/```json/g, '').replace(/```/g, '').trim();
+            let cleanJson = refinedJson.replace(/```json/g, '').replace(/```/g, '').trim();
+
+            // Robust JSON Repair Strategy
+            try {
+                JSON.parse(cleanJson);
+            } catch (e) {
+                console.warn("JSON Parse Failed. Attempting repair...");
+                // Naive repair: if it ends with " or ] or }, it might just be missing the closing brace
+                // If it ends with "tags": [ ... ], it needs }
+                // If it ends properly but missing }, add }
+                if (!cleanJson.endsWith("}")) {
+                    if (cleanJson.endsWith("]")) {
+                        cleanJson += "}";
+                    } else if (cleanJson.endsWith('"')) {
+                        cleanJson += "}"; // Very naive, but covers simple object truncation
+                    } else {
+                        // Try aggressively closing
+                        cleanJson += "}";
+                    }
+                }
+            }
+
             setJsonInput(cleanJson);
 
             // Auto-Switch Scene Context

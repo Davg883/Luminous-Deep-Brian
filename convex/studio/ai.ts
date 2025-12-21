@@ -17,7 +17,8 @@ export const generateContent = action({
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: args.model || "gemini-3-flash-preview",
+            model: args.model || "gemini-1.5-flash",
+            generationConfig: { responseMimeType: "application/json" }
         });
 
         // Voice Persona Definitions (kept as is)
