@@ -10,8 +10,8 @@ export default function AmbientEngine() {
     const [hasError, setHasError] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // Audio Asset (Placeholder: Waves Crashing)
-    const AMBIENCE_URL = "https://actions.google.com/sounds/v1/water/waves_crashing_on_rocks.ogg";
+    // Audio Asset (Placeholder: Deep Ocean Ambience)
+    const AMBIENCE_URL = "https://assets.mixkit.co/sfx/preview/mixkit-distant-ocean-waves-1128.mp3";
 
     useEffect(() => {
         // Initialize Audio
@@ -20,8 +20,8 @@ export default function AmbientEngine() {
         audio.volume = 0; // Start at 0 for fade-in
 
         // Error Handling
-        const handleError = (e: Event | string) => {
-            console.warn("Ambient Audio Failed to Load:", e);
+        const handleError = () => {
+            // Silent failure for ambience
             setHasError(true);
         };
 
