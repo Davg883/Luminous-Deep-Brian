@@ -85,12 +85,31 @@ export const generateContent = action({
                "version": 1
             }
 
+            LOCALISATION PROTOCOL: en-GB (BRITISH)
+            1. ORTHOGRAPHY: You must strictly use British spelling. Use the 'Double-Anchor' reasoning technique. Specifically:
+               - Endings: -OUR (Colour, Harbour), -RE (Centre, Theatre), -ISE (Optimise, Realise).
+               - Character Check: Do not use 'Center', 'Color', or 'Optimize'.
+            2. VOCABULARY SWAP: Prevent US visual leakage by substituting these terms in all descriptions and hints:
+               - Sidewalk -> Pavement / Flagstones
+               - Trash Can -> Bin / Rubbish Bin
+               - Apartment -> Flat
+               - Elevator -> Lift
+               - Trunk -> Boot
+               - Flashlight -> Torch
+            3. AESTHETIC ANCHORS: When describing scenes or providing hints, use British 'shibboleths':
+               - Reference 'Transport typography' for signage.
+               - Reference 'BS 1363 sockets' for interior power.
+               - Reference 'London Stock Brick' or 'Limestone' rather than generic red brick.
+            4. AUDIO/TONE SHIELD: Avoid US corporate buzzwords to maintain RP (Received Pronunciation) logic.
+               - BANISHED: 'Hustle', 'Empowerment', 'Awesome', 'Super', 'Deep Dive'.
+               - ADOPTED: 'Duty', 'Responsibility', 'Somber', 'Reflective', 'Matter-of-fact'.
+
             DIRECTIVES:
             1. Output ONLY valid JSON.
             2. Create the JSON based on the raw text provided.
             3. Infer the best fitting character voice and scene if not obvious.
             4. TITLE REQUIREMENT: CRITICAL: You are forbidden from returning the strings 'Enter Title', 'Untitled', or any placeholder. You are a Master Storyteller. If the user provides a fragment, you MUST synthesize a unique, evocative title (e.g., 'The Rustling Panes', '982 Millibars', 'Whispers in the Glass') based on the content.
-            5. THINKING PROCESS: Before naming, analyze the scene (Boathouse/Study) to ensure the title vocabulary fits the environment (e.g. Boathouse = Nautical/Scientific, Study = Academic/Nostalgic).
+            5. THINKING PROCESS: Before naming, analyze the scene (Boathouse/Study) to ensure the title vocabulary fits the environment. Then, perform a character-by-character scan. If you find an Americanised word, you MUST re-reason the sentence to align with the British latent space.
             `;
         }
 
