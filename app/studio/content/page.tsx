@@ -118,17 +118,25 @@ export default function ContentFactoryPage() {
     };
 
     const handleImport = async (forceOverwrite = false) => {
-        if (!jsonInput) return; // selectedSceneId is optional if JSON has it
+        console.log("Starting Import Process...");
+        if (!jsonInput) {
+            console.warn("Import aborted: No JSON Input");
+            return;
+        }
 
         try {
+            console.log("Parsing JSON input...");
             const raw = JSON.parse(jsonInput);
             const items = Array.isArray(raw) ? raw : [raw];
+            console.log("Parsed Items:", items);
 
             let successCount = 0;
             let conflictPack = null;
 
             for (const item of items) {
-                // The "Everything Mapper" normalization (Repeated for safety)
+                console.log("Processing Item:", item);
+
+                // The "Everything Mapper" normalization
                 const normalized = {
                     hotspotId: item.hotspot_id || item.hotspotId || (item.title ? item.title.toLowerCase().replace(/[^a-z0-9]+/g, '_') : `hotspot_${Date.now()}`),
                     title: (!item.title || item.title === "Enter Title" || item.title === "Untitled") ? "A New Discovery" : item.title,
@@ -141,17 +149,23 @@ export default function ContentFactoryPage() {
                     mediaRefs: item.media_refs || item.mediaRefs || "",
                     version: item.version || 1
                 };
+                console.log("Normalized Data:", normalized);
 
                 // Resolve Scene ID
+                console.log("Resolving Scene for Slug:", normalized.sceneSlug);
+
                 const targetScene = (scenes || []).find((s: any) => s.slug === normalized.sceneSlug)
+                    || (scenes || []).find((s: any) => s.domain.toLowerCase() === normalized.sceneSlug.toLowerCase())
                     || (scenes || []).find((s: any) => s._id === selectedSceneId);
 
                 if (!targetScene) {
-                    alert(`Could not resolve scene for slug '${normalized.sceneSlug}'. Please select a scene.`);
+                    console.error(`SCENE RESOLUTION FAILED. Could not find scene for: ${normalized.sceneSlug}`);
+                    alert(`Error: Could not find a scene with slug '${normalized.sceneSlug}' in the database.\n\nAvailable scenes: ${(scenes || []).map((s: any) => s.slug).join(", ")}`);
                     return;
                 }
+                console.log("Resolved Scene ID:", targetScene._id);
 
-                const result: any = await importPack({
+                const mutationArgs = {
                     hotspotId: normalized.hotspotId,
                     domain: normalized.sceneSlug,
                     sceneId: targetScene._id,
@@ -162,12 +176,18 @@ export default function ContentFactoryPage() {
                     tags: normalized.tags,
                     canonRefs: normalized.canonRefs,
                     mediaRefs: normalized.mediaRefs,
-                    status: "Draft",
+                    status: "Draft" as const,
                     version: normalized.version,
                     overwriteConfirmed: forceOverwrite
-                });
+                };
+
+                console.log("Calling importPack with:", mutationArgs);
+
+                const result: any = await importPack(mutationArgs);
+                console.log("Mutation Result:", result);
 
                 if (result.conflict) {
+                    console.warn("Conflict detected:", result);
                     conflictPack = { id: result.existingId, title: result.existingTitle };
                     if (!forceOverwrite) {
                         setOverwriteConflict(conflictPack);
@@ -184,12 +204,13 @@ export default function ContentFactoryPage() {
             setValidationResult(null);
 
             // Success Feedback
-            alert(`Success! ${successCount} draft(s) saved to Review Queue.`);
+            console.log("Import Successful. Redirecting to Review.");
+            alert(`Draft Saved Successfully! ${successCount} item(s) moved to Review.`);
             setActiveTab("Review");
 
-        } catch (e) {
-            console.error(e);
-            alert("Import failed. Check JSON format.");
+        } catch (e: any) {
+            console.error("CRITICAL IMPORT ERROR:", e);
+            alert(`Save Failed: ${e.message || "Unknown Error"}. Check console for details.`);
         }
     };
 
