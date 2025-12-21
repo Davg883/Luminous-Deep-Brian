@@ -47,7 +47,7 @@ export const importPack = mutation({
                 hotspotId: existing.hotspotId,
                 data: existing,
                 archivedAt: Date.now(),
-                archivedBy: identity.subject,
+                archivedBy: identity.tokenIdentifier,
             });
 
             // Delete old or we can patch. User said "overwrite confirmed", so let's patch the existing one to keep ID?
@@ -55,7 +55,7 @@ export const importPack = mutation({
             const { overwriteConfirmed, ...data } = args;
             await ctx.db.patch(existing._id, {
                 ...data,
-                importedBy: identity.subject,
+                importedBy: identity.tokenIdentifier,
                 version: existing.version + 1,
             });
             return { success: true, id: existing._id, updated: true };
@@ -65,7 +65,7 @@ export const importPack = mutation({
         const { overwriteConfirmed, ...data } = args;
         const id = await ctx.db.insert("contentPacks", {
             ...data,
-            importedBy: identity.subject,
+            importedBy: identity.tokenIdentifier,
         });
         return { success: true, id };
     },
