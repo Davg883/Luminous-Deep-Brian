@@ -85,7 +85,7 @@ export default function ContentFactoryPage() {
             // The "Everything Mapper" normalization
             const normalized = {
                 hotspotId: data.hotspot_id || data.hotspotId || (data.title ? data.title.toLowerCase().replace(/[^a-z0-9]+/g, '_') : ""),
-                title: (!data.title || data.title === "Enter Title" || data.title === "Untitled") ? "A New Discovery" : data.title,
+                title: data.title || "Untitled", // Keep original title for validation warning, don't auto-fix yet
                 sceneSlug: data.scene_slug || data.sceneSlug || data.domain || "workshop",
                 bodyCopy: data.content || data.body_copy || data.bodyCopy || "",
                 hintLine: data.hint || data.hint_line || data.hintLine || "",
@@ -99,7 +99,7 @@ export default function ContentFactoryPage() {
             // Validation Logic
             if (!normalized.hotspotId) errors.push("Missing hotspot_id (could not auto-generate)");
             // if (!normalized.sceneSlug) warnings.push("Missing scene_slug (using default)"); // defaulted above
-            if (!data.title || data.title === "Enter Title") warnings.push("Title was placeholder (auto-renamed to 'A New Discovery')");
+            if (!data.title || data.title === "Enter Title" || data.title === "Untitled") warnings.push("Title is placeholder (will be auto-named 'A New Discovery' on save)");
             if (!normalized.bodyCopy) errors.push("Missing content");
 
             setValidationResult({ errors, warnings });
