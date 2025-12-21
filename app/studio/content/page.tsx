@@ -66,6 +66,8 @@ export default function ContentFactoryPage() {
             // Clean up markdown block
             let cleanJson = refinedJson.replace(/```json/g, '').replace(/```/g, '').trim();
 
+            console.log("Setting text to:", cleanJson.substring(0, 20) + "...");
+
             // 1. UPDATE EDITOR IMMEDIATELY (Safety Net)
             setJsonInput(cleanJson);
 
