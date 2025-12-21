@@ -58,17 +58,21 @@ export default function ContentFactoryPage() {
             // The prompt is now dynamically handled by convex/studio/ai.ts based on format
             // If it's pure text, the backend will treat it as a "Convert to JSON" task.
             // If it's JSON, the backend will treat it as a "Refine" task.
+            console.log("Sending prompt to AI:", jsonInput);
+
             const refinedJson = await generateContent({
                 prompt: jsonInput,
                 voice: selectedSceneId === "scenes:boathouse" ? "julian" : selectedSceneId === "scenes:study" ? "eleanor" : "cassie" // Naive voice selection for now
             });
+            console.log("AI Response Raw:", refinedJson);
 
             // Clean up markdown block if present (redundant check, but safe)
             const cleanJson = refinedJson.replace(/```json/g, '').replace(/```/g, '').trim();
             setJsonInput(cleanJson);
             validateJson(cleanJson);
-        } catch (e) {
-            alert("AI processing failed. Please try again.");
+        } catch (e: any) {
+            console.error("AI PROCESS ERROR:", e);
+            alert(`AI Error: ${e.message || "Unknown error"}. Input has NOT been modified.`);
         } finally {
             setIsProcessingAI(false);
         }
@@ -470,6 +474,8 @@ export default function ContentFactoryPage() {
                                     <div className="flex items-end">
                                         <button
                                             onClick={() => {
+                                                if (!window.confirm("This will overwrite your current text with a sample template. Are you sure?")) return;
+
                                                 const scene = (scenes || []).find((s: any) => s._id === selectedSceneId);
                                                 const domain = scene?.domain || "workshop";
 
@@ -565,25 +571,28 @@ export default function ContentFactoryPage() {
                         )}
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Overwrite Confirmation Dialog */}
-            {overwriteConflict && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
-                        <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center text-2xl mx-auto mb-6">⚠️</div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Overwrite Hotspot?</h3>
-                        <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                            A hotspot with ID <span className="font-mono bg-gray-100 px-1 rounded text-red-500">{overwriteConflict.id}</span> already exists as <strong>"{overwriteConflict.title}"</strong>.
-                            <br /><br />The previous version will be archived automatically.
-                        </p>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button onClick={() => setOverwriteConflict(null)} className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all">Cancel</button>
-                            <button onClick={() => handleImport(true)} className="px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all">Yes, Overwrite</button>
+            {
+                overwriteConflict && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
+                            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center text-2xl mx-auto mb-6">⚠️</div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Overwrite Hotspot?</h3>
+                            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+                                A hotspot with ID <span className="font-mono bg-gray-100 px-1 rounded text-red-500">{overwriteConflict.id}</span> already exists as <strong>"{overwriteConflict.title}"</strong>.
+                                <br /><br />The previous version will be archived automatically.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={() => setOverwriteConflict(null)} className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all">Cancel</button>
+                                <button onClick={() => handleImport(true)} className="px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all">Yes, Overwrite</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
