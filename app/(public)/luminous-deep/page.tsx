@@ -53,13 +53,12 @@ export default function LuminousDeepPage() {
     const [isHUDExpanded, setIsHUDExpanded] = useState(false);
     const [showArtefact, setShowArtefact] = useState(false);
 
+    // Fetch scene data from database
+    const scene = useQuery(api.public.scenes.getScene, { slug: "luminous-deep" });
+
     // Fetch agents from public API
-    // Cast as any until Convex types regenerate - the function exists but types may lag behind
     const agentsData = useQuery((api as any).public.scenes.listAgents, {});
     const agents = (agentsData && Array.isArray(agentsData) ? agentsData : []) as Agent[];
-
-    // Background video URL - The correct Door Entry video
-    const CONTROL_ROOM_VIDEO = "https://res.cloudinary.com/dptqxjhb8/video/upload/v1766323557/LD_luminous-deep_scene_main_v1.mp4";
 
     // Selected agent details
     const selectedAgent = agents?.find(a => a._id === selectedAgentId);
@@ -73,19 +72,53 @@ export default function LuminousDeepPage() {
         return () => clearInterval(interval);
     }, []);
 
+    // Loading state - terminal boot screen
+    if (scene === undefined) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center font-mono">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-2 border-[var(--deep-accent)]/50 rounded-full mx-auto mb-6 animate-pulse flex items-center justify-center">
+                        <Zap className="w-8 h-8 text-[var(--deep-accent)] animate-pulse" />
+                    </div>
+                    <p className="text-[var(--deep-accent)] text-sm tracking-widest uppercase animate-pulse">
+                        INITIALIZING CONTROL ROOM...
+                    </p>
+                    <p className="text-zinc-600 text-xs mt-2">Connecting to Luminous Deep</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Get background media URL from database (handles both images and videos)
+    const backgroundMediaUrl = scene?.backgroundMediaUrl;
+    const isVideo = backgroundMediaUrl?.match(/\.(mp4|webm|mov)$/i);
+
     return (
         <div className="relative min-h-screen bg-[var(--deep-bg)] overflow-hidden font-mono">
-            {/* Background Video */}
+            {/* Background Media - Data Driven */}
             <div className="fixed inset-0 z-0">
-                <video
-                    src={CONTROL_ROOM_VIDEO}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover opacity-30"
-                    style={{ filter: "saturate(0.3) brightness(0.4)" }}
-                />
+                {isVideo ? (
+                    <video
+                        key={backgroundMediaUrl}
+                        src={backgroundMediaUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover opacity-30"
+                        style={{ filter: "saturate(0.3) brightness(0.4)" }}
+                    />
+                ) : backgroundMediaUrl ? (
+                    <img
+                        key={backgroundMediaUrl}
+                        src={backgroundMediaUrl}
+                        alt="Control Room"
+                        className="w-full h-full object-cover opacity-30"
+                        style={{ filter: "saturate(0.3) brightness(0.4)" }}
+                    />
+                ) : (
+                    <div className="w-full h-full bg-black" />
+                )}
                 {/* Dark overlay */}
                 <div className="absolute inset-0 bg-gradient-radial from-transparent via-black/60 to-black/90" />
             </div>
