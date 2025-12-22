@@ -157,10 +157,9 @@ export default function DomainPage() {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setIsTerminalOpen(true)}
-                        className="fixed bottom-8 right-8 z-50 p-3 bg-white/10 text-white backdrop-blur-md border border-white/20 rounded-full hover:bg-white/20 transition-all shadow-lg group"
+                        className="fixed bottom-8 right-8 z-[9999] p-4 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 transition-all shadow-2xl border-2 border-white"
                     >
-                        <div className="absolute inset-0 rounded-full bg-white/5 animate-ping opacity-0 group-hover:opacity-100" />
-                        <Terminal className="w-5 h-5" />
+                        <Terminal className="w-6 h-6" />
                     </motion.button>
 
                     <AnimatePresence>
