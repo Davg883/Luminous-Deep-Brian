@@ -9,7 +9,8 @@ import { Id } from "@/convex/_generated/dataModel";
 import AgentHUD from "@/components/narrative/AgentHUD";
 import AmbientEngine from "@/components/narrative/AmbientEngine";
 import RevealCard from "@/components/narrative/RevealCard";
-import TheDock from "@/components/layout/TheDock";
+import SanctuaryCompass from "@/components/layout/SanctuaryCompass";
+import EdgeNav from "@/components/narrative/EdgeNav";
 import {
     Zap,
     Radio,
@@ -416,7 +417,8 @@ export default function LuminousDeepPage() {
             </AnimatePresence>
 
             {/* Navigation Dock */}
-            <TheDock />
+            <SanctuaryCompass />
+            <EdgeNav currentSlug="luminous-deep" />
 
             {/* Domain-Specific Ambient Audio */}
             <AmbientEngine domain="luminous-deep" />

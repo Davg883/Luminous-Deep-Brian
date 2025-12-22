@@ -8,7 +8,8 @@ import SceneStage from "@/components/narrative/SceneStage";
 import ObjectTrigger from "@/components/narrative/ObjectTrigger";
 import RevealCard from "@/components/narrative/RevealCard";
 import Atmosphere from "@/components/layout/Atmosphere";
-import TheDock from "@/components/layout/TheDock";
+import SanctuaryCompass from "@/components/layout/SanctuaryCompass";
+import EdgeNav from "@/components/narrative/EdgeNav";
 import type { Domain } from "@/lib/types";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -129,7 +130,8 @@ export default function DomainPage() {
             </SceneStage>
 
             {/* Navigation */}
-            <TheDock />
+            <SanctuaryCompass />
+            <EdgeNav currentSlug={validatedDomain} />
 
             {/* Interaction Modal */}
             <RevealCard

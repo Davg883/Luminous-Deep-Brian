@@ -104,7 +104,7 @@ export default function ObjectTrigger({ x, y, label, domain = "workshop", isPort
                     <motion.div
                         animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0.2, 0.6] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute w-8 h-8 rounded-full border-2"
+                        className="absolute w-12 h-12 rounded-full border-2 border-dashed"
                         style={{
                             borderColor: glowColor,
                             filter: `drop-shadow(0 0 10px ${glowColor})`,
@@ -122,14 +122,14 @@ export default function ObjectTrigger({ x, y, label, domain = "workshop", isPort
                 >
                     <span
                         className={clsx(
-                            "font-serif text-xs uppercase tracking-[0.2em] whitespace-nowrap font-semibold",
-                            isPortal ? "text-amber-300" : "text-white"
+                            "font-serif text-xs uppercase tracking-[0.2em] whitespace-nowrap font-bold",
+                            isPortal ? "text-amber-200" : "text-white"
                         )}
                         style={{
                             textShadow: "0px 1px 4px rgba(0,0,0,0.9), 0px 0px 10px rgba(0,0,0,0.7)",
                         }}
                     >
-                        {label || "+"}
+                        {isPortal ? `ENTER ${(label || "ROOM").toUpperCase()}` : (label || "+")}
                     </span>
                 </div>
             </div>

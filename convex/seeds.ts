@@ -38,24 +38,30 @@ async function upsertSceneFull(ctx: any, slug: string, title: string, domain: st
     }
 
     for (const obj of objects) {
-        const revealId = await ctx.db.insert("reveals", {
-            type: (obj.revealType || "text") as any,
-            title: obj.revealTitle,
-            content: obj.revealContent,
-            voice: obj.voice as any,
-            tags: obj.revealTags || [],
-            status: "published",
-            publishedAt: Date.now(),
-        });
+        let revealId;
+
+        // Only create a reveal if it's NOT a pure transition/portal
+        if (obj.role !== "transition") {
+            revealId = await ctx.db.insert("reveals", {
+                type: (obj.revealType || "text") as any,
+                title: obj.revealTitle || "Untitled",
+                content: obj.revealContent || "",
+                voice: obj.voice as any,
+                tags: obj.revealTags || [],
+                status: "published",
+                publishedAt: Date.now(),
+            });
+        }
 
         await ctx.db.insert("objects", {
             sceneId,
             name: obj.name,
             x: obj.x,
             y: obj.y,
-            hint: obj.hint || `View ${obj.name}`,
+            hint: obj.hint || (obj.role === "transition" ? `Enter ${obj.name}` : `View ${obj.name}`),
             revealId,
-            role: obj.role || "trigger"
+            role: obj.role || "trigger",
+            destinationSlug: obj.destinationSlug
         });
     }
 }
@@ -127,6 +133,21 @@ export const seedAll = mutation({
                     revealTags: ["intro", "arrival"],
                     status: "published",
                     publishedAt: Date.now(),
+                },
+                {
+                    name: "The Front Door",
+                    x: 65, y: 40,
+                    role: "transition",
+                    destinationSlug: "/workshop",
+                    hint: "Enter Workshop"
+                },
+                // Portal to Workshop
+                {
+                    name: "The Front Door",
+                    x: 65, y: 40,
+                    role: "transition",
+                    destinationSlug: "/workshop",
+                    hint: "Enter Workshop"
                 }
             ],
             ["intro"]
@@ -152,6 +173,13 @@ export const seedAll = mutation({
                     revealTags: ["journal", "canon"],
                     status: "published",
                     publishedAt: Date.now(),
+                },
+                {
+                    name: "Side Door",
+                    x: 80, y: 60,
+                    role: "transition",
+                    destinationSlug: "/kitchen",
+                    hint: "Enter Kitchen"
                 }
             ],
             ["reflection"]
@@ -177,6 +205,13 @@ export const seedAll = mutation({
                     revealTags: ["blueprint", "canon"],
                     status: "published",
                     publishedAt: Date.now(),
+                },
+                {
+                    name: "Hallway",
+                    x: 20, y: 50,
+                    role: "transition",
+                    destinationSlug: "/lounge",
+                    hint: "Enter Lounge"
                 }
             ],
             ["creation"]
@@ -202,6 +237,13 @@ export const seedAll = mutation({
                     revealTags: ["log", "canon"],
                     status: "published",
                     publishedAt: Date.now(),
+                },
+                {
+                    name: "The Heavy Door",
+                    x: 88, y: 50,
+                    role: "transition",
+                    destinationSlug: "/luminous-deep",
+                    hint: "Descent"
                 }
             ],
             ["nature"]
@@ -227,6 +269,13 @@ export const seedAll = mutation({
                     revealTags: ["mood", "canon"],
                     status: "published",
                     publishedAt: Date.now(),
+                },
+                {
+                    name: "Library Door",
+                    x: 75, y: 45,
+                    role: "transition",
+                    destinationSlug: "/study",
+                    hint: "Enter Study"
                 }
             ],
             ["warmth"],
@@ -253,6 +302,13 @@ export const seedAll = mutation({
                     revealTags: ["routine", "canon"],
                     status: "published",
                     publishedAt: Date.now(),
+                },
+                {
+                    name: "Wharf Path",
+                    x: 25, y: 70,
+                    role: "transition",
+                    destinationSlug: "/boathouse",
+                    hint: "To Boathouse"
                 }
             ],
             ["utility"]
