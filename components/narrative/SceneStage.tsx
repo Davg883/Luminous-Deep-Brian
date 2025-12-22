@@ -37,6 +37,7 @@ export default function SceneStage({ mediaUrl, children, isFocused = false, play
                         <div className="w-full h-full bg-slate-900 animate-pulse" />
                     ) : mediaUrl.match(/\.(mp4|webm|mov)$/i) ? (
                         <video
+                            key={mediaUrl}
                             ref={videoRef}
                             src={mediaUrl}
                             autoPlay
@@ -47,6 +48,7 @@ export default function SceneStage({ mediaUrl, children, isFocused = false, play
                         />
                     ) : (
                         <motion.div
+                            key={mediaUrl}
                             initial={{ scale: 1.1, x: 0, y: 0 }}
                             animate={{
                                 x: [0, -15, 10, -5, 0],

@@ -58,8 +58,8 @@ export default function LuminousDeepPage() {
     const agentsData = useQuery((api as any).public.scenes.listAgents, {});
     const agents = (agentsData && Array.isArray(agentsData) ? agentsData : []) as Agent[];
 
-    // Background video URL (door entry video placeholder)
-    const CONTROL_ROOM_VIDEO = "https://res.cloudinary.com/dptqxjhb8/video/upload/v1766235198/House_video_z7n1yj.mp4"; // Placeholder
+    // Background video URL - The correct Door Entry video
+    const CONTROL_ROOM_VIDEO = "https://res.cloudinary.com/dptqxjhb8/video/upload/v1766323557/LD_luminous-deep_scene_main_v1.mp4";
 
     // Selected agent details
     const selectedAgent = agents?.find(a => a._id === selectedAgentId);
