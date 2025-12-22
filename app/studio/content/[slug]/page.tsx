@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
@@ -13,6 +13,7 @@ export default function SceneEditor() {
     const params = useParams();
     const router = useRouter();
     const slug = params?.slug as string;
+    const searchParams = useSearchParams();
 
     const scene = useQuery(api.studio.scenes.getScene, { slug });
     const unlinkedReveals = useQuery(api.studio.content.listUnlinkedReveals);
@@ -89,7 +90,14 @@ export default function SceneEditor() {
         // === NORMAL MODE: Set point for new object ===
         setSelectedPoint({ x, y });
         setNewItemName("");
-        setSelectedRevealId("");
+
+        // Auto-select reveal if placing from library
+        const placementId = searchParams.get("placeReveal");
+        if (placementId) {
+            setSelectedRevealId(placementId as any);
+        } else {
+            setSelectedRevealId("");
+        }
     };
 
     const handleObjectClick = (e: React.MouseEvent, objectId: Id<"objects">) => {
@@ -149,6 +157,11 @@ export default function SceneEditor() {
                             {scene.title}
                             <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded uppercase">{scene.domain}</span>
                         </h1>
+                        {searchParams.get("placeReveal") && (
+                            <div className="text-xs text-orange-600 font-bold animate-pulse">
+                                • Click anywhere to place your item
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="flex items-center gap-4">

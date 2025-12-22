@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { mutation, query, internalMutation } from "../_generated/server";
 import { requireStudioAccess } from "../auth/helpers";
 
 export const listPacks = query({
@@ -219,6 +219,44 @@ export const resolveMedia = query({
             .query("media")
             .withIndex("by_public_id", (q) => q.eq("publicId", args.publicId))
             .first();
+    },
+});
+
+export const deleteRevealInternal = internalMutation({
+    args: { id: v.id("reveals") },
+    handler: async (ctx, args) => {
+        // Delete the reveal itself
+        await ctx.db.delete(args.id);
+
+        // Scan objects for any that link to this reveal (cleanup "ghost dots")
+        const objects = await ctx.db
+            .query("objects")
+            .filter((q) => q.eq(q.field("revealId"), args.id))
+            .collect();
+
+        for (const obj of objects) {
+            await ctx.db.delete(obj._id);
+        }
+    },
+});
+
+export const deleteReveal = mutation({
+    args: { id: v.id("reveals") },
+    handler: async (ctx, args) => {
+        await requireStudioAccess(ctx);
+
+        // Delete the reveal itself
+        await ctx.db.delete(args.id);
+
+        // Scan objects for any that link to this reveal
+        const objects = await ctx.db
+            .query("objects")
+            .filter((q) => q.eq(q.field("revealId"), args.id))
+            .collect();
+
+        for (const obj of objects) {
+            await ctx.db.delete(obj._id);
+        }
     },
 });
 

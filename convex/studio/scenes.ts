@@ -6,7 +6,18 @@ export const getAllScenes = query({
     args: {},
     handler: async (ctx) => {
         await requireStudioAccess(ctx);
-        return await ctx.db.query("scenes").collect();
+        const scenes = await ctx.db.query("scenes").collect();
+
+        // Enrich with object counts
+        const enriched = await Promise.all(scenes.map(async (scene) => {
+            const objects = await ctx.db
+                .query("objects")
+                .withIndex("by_scene", q => q.eq("sceneId", scene._id))
+                .collect();
+            return { ...scene, objectCount: objects.length };
+        }));
+
+        return enriched;
     },
 });
 

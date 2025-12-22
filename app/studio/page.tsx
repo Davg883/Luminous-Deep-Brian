@@ -215,7 +215,11 @@ export default function StudioDashboard() {
                     {(scenes || []).map((scene: any) => (
                         <div key={scene._id} className="p-6 hover:bg-gray-50 transition-colors">
                             <div className="text-xs font-bold uppercase text-indigo-400 mb-1">{scene.domain}</div>
-                            <div className="font-bold text-gray-800">{scene.title}</div>
+                            <div className="font-bold text-gray-800 mb-2">{scene.title}</div>
+                            <div className="text-[10px] text-gray-400 font-mono flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+                                {scene.objectCount || 0} Objects
+                            </div>
                         </div>
                     ))}
                 </div>

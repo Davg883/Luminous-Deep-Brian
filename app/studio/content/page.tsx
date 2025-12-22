@@ -3,10 +3,12 @@
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import clsx from "clsx";
 import { ContentPreview } from "@/components/studio/ContentPreview";
 import Link from "next/link";
+import { Trash2, MapPin } from "lucide-react";
 
 function MediaResolverStatus({ publicId }: { publicId: string }) {
     const asset = useQuery(api.studio.content.resolveMedia, { publicId });
@@ -33,6 +35,8 @@ export default function ContentFactoryPage() {
     const publishPack = useMutation(api.studio.content.publishPack);
     const updatePack = useMutation(api.studio.content.updatePack);
     const deletePack = useMutation(api.studio.content.deletePack);
+    const deleteReveal = useMutation(api.studio.content.deleteReveal);
+    const router = useRouter();
 
     const [activeTab, setActiveTab] = useState<Tab>("Library");
 
@@ -408,6 +412,7 @@ export default function ContentFactoryPage() {
                                         <th className="px-4 py-3 text-left">Type</th>
                                         <th className="px-4 py-3 text-left">Status</th>
                                         <th className="px-4 py-3 text-left">Location</th>
+                                        <th className="px-4 py-3 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -439,6 +444,34 @@ export default function ContentFactoryPage() {
                                                 </td>
                                                 <td className="px-4 py-3 text-xs text-gray-500">
                                                     {reveal.isLinked ? reveal.linkedSceneName : <span className="italic">Unplaced</span>}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="flex justify-end gap-2 items-center">
+                                                        {!reveal.isLinked && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    // Default to workshop for placement if unknown
+                                                                    const targetSlug = reveal.linkedSceneName ? "workshop" : "workshop";
+                                                                    router.push(`/studio/content/${targetSlug}?placeReveal=${reveal._id}`);
+                                                                }}
+                                                                className="text-xs bg-orange-100 text-orange-700 px-2 py-1.5 rounded font-bold hover:bg-orange-200 flex items-center gap-1 transition-colors"
+                                                                title="Place in Scene"
+                                                            >
+                                                                <MapPin className="w-3 h-3" /> Place
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (confirm("Delete this reveal? This will also remove any objects linking to it.")) deleteReveal({ id: reveal._id });
+                                                            }}
+                                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
