@@ -57,6 +57,7 @@ export const listAllReveals = query({
                 linkedSceneName: sceneName,
                 linkedObjectName: linkedObject?.name || null,
                 scene_slug,
+                isAnchored: isLinked,
             };
         }));
 

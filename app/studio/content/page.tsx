@@ -494,10 +494,24 @@ export default function ContentFactoryPage() {
                             {previewData && <span className="bg-purple-100 text-purple-700 text-[10px] font-black px-2 py-0.5 rounded">LIBRARY</span>}
                         </h2>
                         {previewData ? (
-                            <ContentPreview
-                                pack={previewData}
-                                sceneTitle={previewData.linkedSceneName || "Unplaced"}
-                            />
+                            <div className="flex flex-col h-full gap-4">
+                                <ContentPreview
+                                    pack={previewData}
+                                    sceneTitle={previewData.linkedSceneName || "Unplaced"}
+                                />
+                                {(!previewData.isAnchored && !previewData.isLinked) && (
+                                    <button
+                                        onClick={() => {
+                                            const targetSlug = previewData.scene_slug || "workshop";
+                                            router.push(`/studio/content/${targetSlug}?placeReveal=${previewData._id}`);
+                                        }}
+                                        className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 animate-pulse"
+                                    >
+                                        <MapPin className="w-6 h-6" />
+                                        <span>ANCHOR TO {previewData.scene_slug ? previewData.scene_slug.toUpperCase() : "SCENE"}</span>
+                                    </button>
+                                )}
+                            </div>
                         ) : (
                             <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-center p-8">
                                 <p>Click a row to preview</p>
