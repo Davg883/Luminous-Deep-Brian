@@ -44,6 +44,7 @@ export default function ContentFactoryPage() {
     // Import State
     const [jsonInput, setJsonInput] = useState("");
     const [selectedSceneId, setSelectedSceneId] = useState<Id<"scenes"> | "">("");
+    const [selectedPhase, setSelectedPhase] = useState<"early_year" | "spring" | "summer" | "autumn" | "winter">("early_year");
     const [validationResult, setValidationResult] = useState<{ errors: string[], warnings: string[] } | null>(null);
     const [previewData, setPreviewData] = useState<any>(null);
     const [overwriteConflict, setOverwriteConflict] = useState<{ id: string, title: string } | null>(null);
@@ -73,7 +74,8 @@ export default function ContentFactoryPage() {
 
             const refinedJson = await generateContent({
                 prompt: jsonInput,
-                voice: selectedSceneId === "scenes:boathouse" ? "julian" : selectedSceneId === "scenes:study" ? "eleanor" : "cassie"
+                voice: selectedSceneId === "scenes:boathouse" ? "julian" : selectedSceneId === "scenes:study" ? "eleanor" : "cassie",
+                phase: selectedPhase
             });
 
             console.log("SUCCESS: Received from AI:", refinedJson.substring(0, 200) + "...");
@@ -269,7 +271,8 @@ export default function ContentFactoryPage() {
                     mediaRefs: normalized.mediaRefs,
                     status: "Draft" as const,
                     version: normalized.version,
-                    overwriteConfirmed: forceOverwrite
+                    overwriteConfirmed: forceOverwrite,
+                    phase: selectedPhase
                 };
 
                 console.log("Calling importPack with:", mutationArgs);
@@ -640,18 +643,36 @@ export default function ContentFactoryPage() {
                         <div className="flex-1 flex flex-col gap-4 overflow-hidden">
                             <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Target Scene</label>
-                                        <select
-                                            value={selectedSceneId}
-                                            onChange={(e) => setSelectedSceneId(e.target.value as Id<"scenes">)}
-                                            className="w-full text-sm font-bold border-none bg-gray-50 rounded-md p-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                        >
-                                            <option value="">Select a scene...</option>
-                                            {(scenes || []).map((s: any) => <option key={s?._id} value={s?._id}>{s?.title} ({s?.domain})</option>)}
-                                        </select>
+                                    {/* Column 1: Scene & Phase */}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Target Scene</label>
+                                            <select
+                                                value={selectedSceneId}
+                                                onChange={(e) => setSelectedSceneId(e.target.value as Id<"scenes">)}
+                                                className="w-full text-sm font-bold border-none bg-gray-50 rounded-md p-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                            >
+                                                <option value="">Select a scene...</option>
+                                                {(scenes || []).map((s: any) => <option key={s?._id} value={s?._id}>{s?.title} ({s?.domain})</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Narrative Phase</label>
+                                            <select
+                                                value={selectedPhase}
+                                                onChange={(e) => setSelectedPhase(e.target.value as any)}
+                                                className="w-full text-sm font-bold border-none bg-gray-50 rounded-md p-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                            >
+                                                <option value="early_year">Early Year (Uncertain/Cold)</option>
+                                                <option value="spring">Spring (Energetic/Messy)</option>
+                                                <option value="summer">Summer (Tense/Overreaching)</option>
+                                                <option value="autumn">Autumn (Clear/Heavy)</option>
+                                                <option value="winter">Winter (Resolved/Still)</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="flex items-end">
+                                    {/* Column 2: Template Generator */}
+                                    <div className="flex items-end h-full">
                                         <button
                                             onClick={() => {
                                                 if (!window.confirm("This will overwrite your current text with a sample template. Are you sure?")) return;

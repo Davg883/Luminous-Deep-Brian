@@ -9,6 +9,7 @@ export const generateContent = action({
         prompt: v.string(),
         model: v.optional(v.string()),
         voice: v.optional(v.union(v.literal("cassie"), v.literal("eleanor"), v.literal("julian"))),
+        phase: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         await requireStudioAccessAction(ctx);
@@ -67,6 +68,17 @@ export const generateContent = action({
 
         const personaContext = args.voice ? personas[args.voice] : "You are a creative writer for Luminous Deep.";
 
+        // Narrative Phase Context
+        const phases: Record<string, string> = {
+            "early_year": "Tone is Uncertain, Sparse, Cold.",
+            "spring": "Tone is Energetic, Momentum-driven, Messy.",
+            "summer": "Tone is Tense, Overreaching, Warning-heavy.",
+            "autumn": "Tone is Clear, Heavy, Insightful.",
+            "winter": "Tone is Resolved, Still, Confident."
+        };
+        const currentPhase = args.phase && phases[args.phase as string] ? phases[args.phase as string] : "Tone is Balanced.";
+        const phaseDirective = `CHRONICLE OF BECOMING: This fragment must reflect the '${args.phase || "standard"}' phase. ${currentPhase}\n- Eleanor reflects on the meaning of the phase.\n- Julian documents the system constraints of that phase.\n- Cassie explains the prototypes of that phase.`;
+
         // Detect if input is likely JSON or Raw Text
         const isJson = args.prompt.trim().startsWith("{") || args.prompt.trim().startsWith("[");
 
@@ -78,6 +90,8 @@ export const generateContent = action({
 
             You are the Luminous Deep Narrative Engine powered by Gemini.
             Your primary goal is to refine raw story notes into a character's specific voice while maintaining strict JSON integrity.
+            
+            ${phaseDirective}
 
             VOICE GUIDES:
             - CASSIE: Energetic, process-oriented, focused on 'How it's made'.
@@ -98,6 +112,8 @@ export const generateContent = action({
 
             Identity Context:
             ${personaContext}
+            
+            ${phaseDirective}
 
             TARGET JSON SCHEMA:
             {
@@ -142,7 +158,7 @@ export const generateContent = action({
                     const voiceLabel = args.voice?.toUpperCase() || "NEUTRAL";
                     await ctx.runMutation(internal.studio.runs.logToRunInternal, {
                         runId,
-                        message: `${voiceLabel}: Analyzing narrative context...`,
+                        message: `${voiceLabel} (${args.phase || "NO PHASE"}): Analyzing narrative context...`,
                         level: "info",
                     });
                 } catch (e) { /* ignore telemetry errors */ }

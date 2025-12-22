@@ -88,6 +88,14 @@ export default defineSchema({
             v.literal("creative")   // Atmospheric, evocative, imaginative
         )),
         spaceId: v.optional(v.id("scenes")), // Which space this artefact belongs to
+        // Narrative Calendar
+        phase: v.optional(v.union(
+            v.literal("early_year"),
+            v.literal("spring"),
+            v.literal("summer"),
+            v.literal("autumn"),
+            v.literal("winter")
+        )),
     }),
 
     // ═══════════════════════════════════════════════════════════════
@@ -196,6 +204,13 @@ export default defineSchema({
         // Audit fields
         importedBy: v.string(), // Clerk userId
         sourceFile: v.optional(v.string()),
+        phase: v.optional(v.union(
+            v.literal("early_year"),
+            v.literal("spring"),
+            v.literal("summer"),
+            v.literal("autumn"),
+            v.literal("winter")
+        )),
     }).index("by_scene", ["sceneId"]).index("by_hotspot", ["hotspotId"]),
 
     contentPacksHistory: defineTable({

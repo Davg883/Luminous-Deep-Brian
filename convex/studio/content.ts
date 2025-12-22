@@ -103,6 +103,13 @@ export const importPack = mutation({
         version: v.number(),
         sourceFile: v.optional(v.string()),
         overwriteConfirmed: v.optional(v.boolean()),
+        phase: v.optional(v.union(
+            v.literal("early_year"),
+            v.literal("spring"),
+            v.literal("summer"),
+            v.literal("autumn"),
+            v.literal("winter")
+        )),
     },
     handler: async (ctx, args) => {
         const identity = await requireStudioAccess(ctx);
@@ -157,6 +164,13 @@ export const updatePack = mutation({
         bodyCopy: v.optional(v.string()),
         canonCheckResult: v.optional(v.string()),
         lastReviewedBy: v.optional(v.string()),
+        phase: v.optional(v.union(
+            v.literal("early_year"),
+            v.literal("spring"),
+            v.literal("summer"),
+            v.literal("autumn"),
+            v.literal("winter")
+        )),
     },
     handler: async (ctx, args) => {
         await requireStudioAccess(ctx);
@@ -202,6 +216,7 @@ export const publishPack = mutation({
             status: "published", // Lowercase for backend consistency
             publishedAt: Date.now(),
             spaceId: finalSceneId,
+            phase: pack.phase,
         });
 
         // 3. Create the Object
