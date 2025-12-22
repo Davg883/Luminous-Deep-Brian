@@ -90,6 +90,7 @@ export const generateContent = action({
             3. Do not change keys. Only update values.
             4. Verify that the hotspot names and hint text are evocative and diegetic.
             5. CRITICAL: Never return "Enter Title" or "Untitled". You MUST generate a poetic, 2-4 word title based on the story fragment (e.g., "The Salt-Soaked Timber").
+            6. CANONICAL SCENES: ONLY use these valid scene_slugs: 'home', 'workshop', 'study', 'boathouse', 'lounge', 'kitchen', 'luminous-deep'. Never use 'galley' (use 'kitchen') or 'hearth' (use 'lounge').
             `;
         } else {
             systemInstruction = `
@@ -123,6 +124,7 @@ export const generateContent = action({
             2. Create the JSON based on the raw text provided.
             3. Infer the best fitting character voice and scene if not obvious.
             4. CRITICAL: Generate a unique, evocative title (e.g., 'The Rustling Panes', 'Whispers in the Glass').
+            5. CANONICAL SCENES: ONLY use these valid scene_slugs: 'home', 'workshop', 'study', 'boathouse', 'lounge', 'kitchen', 'luminous-deep'. Never use 'galley' (use 'kitchen') or 'hearth' (use 'lounge').
             `;
         }
 

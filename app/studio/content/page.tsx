@@ -223,10 +223,19 @@ export default function ContentFactoryPage() {
                 console.log("Normalized Data:", normalized);
 
                 // Resolve Scene ID
-                console.log("Resolving Scene for Slug:", normalized.sceneSlug);
+                // Manual Map for common AI hallucinations
+                const slugMap: Record<string, string> = {
+                    "galley": "kitchen",
+                    "hearth": "lounge",
+                    "deck": "boathouse",
+                    "lab": "workshop"
+                };
+                const effectiveSlug = slugMap[normalized.sceneSlug.toLowerCase()] || normalized.sceneSlug;
 
-                const targetScene = (scenes || []).find((s: any) => s.slug === normalized.sceneSlug)
-                    || (scenes || []).find((s: any) => s.domain.toLowerCase() === normalized.sceneSlug.toLowerCase())
+                console.log("Resolving Scene for Slug:", effectiveSlug, "(Original:", normalized.sceneSlug, ")");
+
+                const targetScene = (scenes || []).find((s: any) => s.slug === effectiveSlug)
+                    || (scenes || []).find((s: any) => s.domain.toLowerCase() === effectiveSlug.toLowerCase())
                     || (scenes || []).find((s: any) => s._id === selectedSceneId);
 
                 if (!targetScene) {
