@@ -3,131 +3,155 @@
 import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { useAmbientSafe } from "./AmbientContext";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { usePathname } from "next/navigation";
 import clsx from "clsx";
 
 interface AmbientEngineProps {
-    domain?: string; // Optional domain for domain-specific audio
+    domain?: string; // Optional manual override
 }
 
-// Audio Assets
-const AUDIO_SOURCES = {
+// Audio Assets Fallbacks
+const FALLBACK_SOURCES: Record<string, string> = {
     default: "https://assets.mixkit.co/sfx/preview/mixkit-distant-ocean-waves-1128.mp3",
-    coast: "https://assets.mixkit.co/sfx/preview/mixkit-distant-ocean-waves-1128.mp3",
     // Control Room: Low frequency hum + electronic ambience
     "luminous-deep": "https://assets.mixkit.co/sfx/preview/mixkit-cinematic-mystery-drone-2768.mp3",
 };
 
-export default function AmbientEngine({ domain }: AmbientEngineProps) {
+export default function AmbientEngine({ domain: overrideDomain }: AmbientEngineProps) {
     const ambient = useAmbientSafe();
+    const pathname = usePathname();
     const [hasError, setHasError] = useState(false);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const prevDomainRef = useRef<string | undefined>(undefined);
 
-    // Fallback local state when context is not available
+    // Audio Refs
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const prevSourceRef = useRef<string | undefined>(undefined);
+
+    // Local Fallback State
     const [localMuted, setLocalMuted] = useState(true);
     const [localInteracted, setLocalInteracted] = useState(false);
 
-    // Use context values if available, otherwise fallback to local
+    // 1. Determine Identity & Data
+    // Extract slug from path: /luminous-deep -> luminous-deep. / -> home.
+    const routeSlug = pathname === "/" ? "home" : (pathname?.split("/").slice(-1)[0] || "home");
+
+    // Fetch Scene Data to check for custom audio
+    const scene = useQuery(api.public.scenes.getScene, { slug: routeSlug });
+
+    // 2. Resolve Configuration
+    const effectiveDomain = overrideDomain || scene?.domain || (routeSlug === "luminous-deep" ? "luminous-deep" : "default");
+
+    // Resolve Target URL
+    let targetUrl = FALLBACK_SOURCES.default;
+
+    if (overrideDomain && FALLBACK_SOURCES[overrideDomain]) {
+        targetUrl = FALLBACK_SOURCES[overrideDomain];
+    } else if (scene?.ambientAudioUrl) {
+        targetUrl = scene.ambientAudioUrl;
+    } else if (FALLBACK_SOURCES[effectiveDomain]) {
+        targetUrl = FALLBACK_SOURCES[effectiveDomain];
+    }
+
+    // Resolve Volume
+    const domainVolumes: Record<string, number> = {
+        "luminous-deep": 0.3, // Control room: 30%
+        "default": 0.4,
+    };
+    const baseVolume = ambient?.volume ?? (domainVolumes[effectiveDomain] || domainVolumes.default);
+
     const isMuted = ambient?.isMuted ?? localMuted;
     const hasInteracted = ambient?.hasInteracted ?? localInteracted;
 
-    // Domain-specific volume levels
-    const domainVolumes: Record<string, number> = {
-        "luminous-deep": 0.3, // Control room: 30% to not drown out storytelling
-        "default": 0.4,
-    };
-    const baseVolume = ambient?.volume ?? (domain && domain in domainVolumes ? domainVolumes[domain] : domainVolumes.default);
-
-    // Determine which audio source to use
-    const audioSource = domain && domain in AUDIO_SOURCES
-        ? AUDIO_SOURCES[domain as keyof typeof AUDIO_SOURCES]
-        : AUDIO_SOURCES.default;
-
+    // 3. Audio Lifecycle & Crossfading
     useEffect(() => {
-        // Initialize or switch Audio
+        // Initial Setup
+        if (!audioRef.current) {
+            const newAudio = new Audio(targetUrl);
+            newAudio.loop = true;
+            newAudio.volume = 0;
+            newAudio.addEventListener('error', () => setHasError(true));
+            audioRef.current = newAudio;
+            prevSourceRef.current = targetUrl;
+        }
+
         const audio = audioRef.current;
+        if (!audio) return;
 
-        // If domain changed, crossfade to new audio
-        if (audio && prevDomainRef.current !== domain) {
-            // Fade out current audio
-            const fadeOutInterval = setInterval(() => {
-                if (audio.volume > 0.01) {
-                    audio.volume = Math.max(0, audio.volume - 0.05);
+        // Source Switch Logic
+        if (prevSourceRef.current !== targetUrl) {
+            // console.log(`[Ambient] Sensed change. Outputting crossfade.`);
+
+            // Fast fade out
+            const fadeOut = setInterval(() => {
+                if (audio.volume > 0.05) {
+                    audio.volume = Math.max(0, audio.volume - 0.1);
                 } else {
-                    audio.pause();
-                    audio.src = audioSource;
-                    audio.load();
-                    clearInterval(fadeOutInterval);
+                    clearInterval(fadeOut);
 
-                    // If not muted, start playing the new audio
+                    // Swap
+                    audio.pause();
+                    audio.src = targetUrl;
+                    audio.load();
+                    prevSourceRef.current = targetUrl;
+
+                    // If supposed to be playing, allow regular volume effect to fade it in
                     if (!isMuted && hasInteracted) {
-                        const playPromise = audio.play();
-                        if (playPromise !== undefined) {
-                            playPromise.catch(e => console.log("Autoplay prevented:", e));
-                        }
+                        const p = audio.play();
+                        if (p) p.catch(() => { });
                     }
                 }
             }, 50);
 
-            prevDomainRef.current = domain;
-            return () => clearInterval(fadeOutInterval);
+            return () => clearInterval(fadeOut);
         }
 
-        // Initial setup if no audio exists
-        if (!audioRef.current) {
-            const newAudio = new Audio(audioSource);
-            newAudio.loop = true;
-            newAudio.volume = 0;
+    }, [targetUrl, isMuted, hasInteracted]);
 
-            newAudio.addEventListener('error', () => setHasError(true));
-            audioRef.current = newAudio;
-            prevDomainRef.current = domain;
-        }
-
-        return () => {
-            // Cleanup on unmount
-        };
-    }, [domain, audioSource, isMuted, hasInteracted]);
-
-    // Handle mute/unmute and volume changes
+    // 4. Volume & Playback State Maintenance
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio || hasError) return;
 
+        // Check if we are mid-transition (source mismatch). If so, let the other effect handle it.
+        if (prevSourceRef.current !== targetUrl) return;
+
         if (!isMuted && hasInteracted) {
-            // Fade In
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(e => {
-                    console.log("Autoplay prevented or interrupted:", e);
-                });
+            // Ensure playing
+            if (audio.paused) {
+                const p = audio.play();
+                if (p) p.catch(() => { });
             }
 
-            const targetVolume = baseVolume;
-            const fadeInterval = setInterval(() => {
-                if (audio.volume < targetVolume) {
-                    audio.volume = Math.min(targetVolume, audio.volume + 0.01);
+            // Smooth Fade In to Target
+            const fadeIn = setInterval(() => {
+                if (audio.volume < baseVolume) {
+                    audio.volume = Math.min(baseVolume, audio.volume + 0.02);
+                } else if (audio.volume > baseVolume + 0.02) {
+                    // Also handle volume reduction if baseVolume changed downwards
+                    audio.volume = Math.max(baseVolume, audio.volume - 0.02);
                 } else {
-                    clearInterval(fadeInterval);
+                    clearInterval(fadeIn);
                 }
             }, 100);
-            return () => clearInterval(fadeInterval);
+            return () => clearInterval(fadeIn);
+
         } else {
-            // Fade Out and Pause
-            const fadeOutInterval = setInterval(() => {
+            // Smooth Fade Out
+            const fadeOut = setInterval(() => {
                 if (audio.volume > 0.01) {
                     audio.volume = Math.max(0, audio.volume - 0.05);
                 } else {
                     audio.pause();
-                    audio.currentTime = 0;
-                    clearInterval(fadeOutInterval);
+                    clearInterval(fadeOut);
                 }
-            }, 100);
-            return () => clearInterval(fadeOutInterval);
+            }, 50);
+            return () => clearInterval(fadeOut);
         }
-    }, [isMuted, hasInteracted, hasError, baseVolume]);
+    }, [isMuted, hasInteracted, baseVolume, targetUrl, hasError]);
 
-    // Cleanup on unmount
+
+    // Cleanup
     useEffect(() => {
         return () => {
             const audio = audioRef.current;
@@ -138,9 +162,10 @@ export default function AmbientEngine({ domain }: AmbientEngineProps) {
         };
     }, []);
 
+
+    // UI
     const handleToggle = () => {
         if (hasError) return;
-
         if (ambient) {
             ambient.toggleMute();
         } else {
@@ -158,24 +183,24 @@ export default function AmbientEngine({ domain }: AmbientEngineProps) {
                 className={clsx(
                     "p-3 rounded-full glass-morphic text-white/80 hover:text-white transition-all duration-300 group",
                     !isMuted && "bg-white/10",
-                    // Domain-specific button styling
-                    domain === "luminous-deep" && "!bg-[var(--deep-bg)] !border-[var(--deep-accent)]/30 hover:!border-[var(--deep-accent)]"
+                    // Domain styling
+                    effectiveDomain === "luminous-deep" && "!bg-black/80 !border-emerald-500/30 hover:!border-emerald-500 shadow-emerald-900/20"
                 )}
                 aria-label={isMuted ? "Unmute Ambience" : "Mute Ambience"}
+                title={`Ambience: ${effectiveDomain}`}
             >
                 {isMuted ? (
                     <VolumeX size={20} className={clsx(
                         "opacity-70 group-hover:opacity-100",
-                        domain === "luminous-deep" && "text-[var(--deep-accent)]"
+                        effectiveDomain === "luminous-deep" && "text-emerald-500"
                     )} />
                 ) : (
                     <Volume2 size={20} className={clsx(
                         "opacity-70 group-hover:opacity-100",
-                        domain === "luminous-deep" && "text-[var(--deep-accent)] animate-pulse"
+                        effectiveDomain === "luminous-deep" && "text-emerald-500 animate-pulse"
                     )} />
                 )}
             </button>
         </div>
     );
 }
-

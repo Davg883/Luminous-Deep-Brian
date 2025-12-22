@@ -440,6 +440,33 @@ export default function SceneEditor() {
                             </button>
                         </div>
                     </div>
+
+                    {/* Ambient Audio */}
+                    <div className="p-4 border-t border-gray-200 bg-gray-50">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">Ambient Audio URL (MP3/WAV)</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs"
+                                placeholder="Paste Audio URL..."
+                                defaultValue={scene.ambientAudioUrl || ""}
+                                onBlur={async (e) => {
+                                    if (e.target.value !== (scene.ambientAudioUrl || "")) {
+                                        await updateScene({
+                                            id: scene._id,
+                                            title: scene.title,
+                                            domain: scene.domain,
+                                            backgroundMediaUrl: scene.backgroundMediaUrl,
+                                            shouldLoop: scene.shouldLoop,
+                                            ambientAudioUrl: e.target.value
+                                        });
+                                        // No alert to keep flow smooth? Or toast?
+                                        // alert("Audio updated!");
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

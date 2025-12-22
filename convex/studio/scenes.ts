@@ -56,6 +56,7 @@ export const updateScene = mutation({
             v.literal("luminous-deep")
         ),
         shouldLoop: v.optional(v.boolean()),
+        ambientAudioUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         await requireStudioAccess(ctx);
@@ -66,6 +67,9 @@ export const updateScene = mutation({
         };
         if (args.shouldLoop !== undefined) {
             updates.shouldLoop = args.shouldLoop;
+        }
+        if (args.ambientAudioUrl !== undefined) {
+            updates.ambientAudioUrl = args.ambientAudioUrl;
         }
         await ctx.db.patch(args.id, updates);
     },

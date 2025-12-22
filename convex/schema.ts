@@ -35,6 +35,7 @@ export default defineSchema({
         tagline: v.optional(v.string()), // e.g., "Where ideas take form"
         mood: v.optional(v.array(v.string())), // e.g., ["focused", "warm", "creative"]
         allowedTools: v.optional(v.array(v.string())), // e.g., ["search", "generate", "analyze"]
+        ambientAudioUrl: v.optional(v.string()), // Room-specific soundscape
     }).index("by_slug", ["slug"]).index("by_domain", ["domain"]),
 
     objects: defineTable({
