@@ -63,26 +63,30 @@ export default function SceneEditor() {
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-        // If in move mode and we have an object selected, relocate it
-        if (isMoveMode && movingObjectId) {
-            setIsSubmitting(true);
-            try {
-                await updateObjectPosition({
-                    id: movingObjectId,
-                    x,
-                    y,
-                });
-                console.log("Object relocated to:", x, y);
-            } catch (e: any) {
-                alert(`Relocation failed: ${e.message}`);
-            } finally {
-                setIsSubmitting(false);
-                setMovingObjectId(null);
+        // === MOVE MODE LOGIC ===
+        if (isMoveMode) {
+            // If an object is selected for moving, relocate it
+            if (movingObjectId) {
+                setIsSubmitting(true);
+                try {
+                    await updateObjectPosition({
+                        id: movingObjectId,
+                        x,
+                        y,
+                    });
+                    console.log("✅ Object relocated to:", x.toFixed(1), y.toFixed(1));
+                } catch (e: any) {
+                    alert(`Relocation failed: ${e.message}`);
+                } finally {
+                    setIsSubmitting(false);
+                    setMovingObjectId(null);
+                }
             }
+            // In Move Mode, clicking background does nothing else (no new object form)
             return;
         }
 
-        // Normal mode: set point for new object
+        // === NORMAL MODE: Set point for new object ===
         setSelectedPoint({ x, y });
         setNewItemName("");
         setSelectedRevealId("");

@@ -27,6 +27,7 @@ type Tab = "Library" | "Review" | "Write" | "Scenes";
 
 export default function ContentFactoryPage() {
     const packs = useQuery(api.studio.content.listPacks);
+    const allReveals = useQuery(api.studio.content.listAllReveals);
     const scenes = useQuery(api.studio.scenes.getAllScenes);
     const importPack = useMutation(api.studio.content.importPack);
     const publishPack = useMutation(api.studio.content.publishPack);
@@ -296,6 +297,18 @@ export default function ContentFactoryPage() {
         });
     }, [packs, searchQuery, statusFilter, domainFilter]);
 
+    // Filtered reveals for Library tab (shows ALL content including unlinked)
+    const filteredReveals = useMemo(() => {
+        if (!allReveals) return [];
+        return (allReveals as any[]).filter(r => {
+            const matchesSearch = (r.title || "").toLowerCase().includes(searchQuery.toLowerCase());
+            // Map reveal status/linking to filter options
+            const revealStatus = !r.isLinked ? "Unlinked" : (r.status === "published" ? "Published" : r.status === "draft" ? "Draft" : "Review");
+            const matchesStatus = statusFilter === "All" || revealStatus === statusFilter;
+            return matchesSearch && matchesStatus;
+        });
+    }, [allReveals, searchQuery, statusFilter]);
+
     if (packs === undefined || scenes === undefined) return <div className="p-8">Loading Factory...</div>;
 
     return (
@@ -376,6 +389,7 @@ export default function ContentFactoryPage() {
                             <option value="Draft">Draft</option>
                             <option value="Review">Review</option>
                             <option value="Published">Published</option>
+                            <option value="Unlinked">Unlinked</option>
                         </select>
                         <select
                             className="border-none bg-gray-50 rounded-md px-4 py-2 text-sm outline-none"
@@ -394,50 +408,81 @@ export default function ContentFactoryPage() {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                                    <th className="px-6 py-4 text-left">Hotspot / ID</th>
-                                    <th className="px-6 py-4 text-left">Location</th>
+                                    <th className="px-6 py-4 text-left">Title</th>
+                                    <th className="px-6 py-4 text-left">Type</th>
                                     <th className="px-6 py-4 text-left">Status</th>
-                                    <th className="px-6 py-4 text-left">Version</th>
-                                    <th className="px-6 py-4 text-right">Actions</th>
+                                    <th className="px-6 py-4 text-left">Location</th>
+                                    <th className="px-6 py-4 text-right">Preview</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredPacks.map((pack: any) => (
-                                    <tr key={pack._id} className="hover:bg-gray-50 transition-colors group">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-bold text-gray-900">{pack.title}</div>
-                                            <div className="text-[10px] font-mono text-gray-400">{pack.hotspotId}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-xs font-medium text-indigo-600 uppercase">{pack.domain}</div>
-                                            <div className="text-[11px] text-gray-500">{(scenes || []).find((s: any) => s._id === pack.sceneId)?.title}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={clsx(
-                                                "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider",
-                                                pack.status === "Published" ? "bg-green-100 text-green-700" :
-                                                    pack.status === "Review" ? "bg-yellow-100 text-yellow-700" :
-                                                        "bg-blue-100 text-blue-700"
-                                            )}>
-                                                {pack.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-mono">
-                                            v{pack.version}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-bold space-x-3">
-                                            {pack.status === "Draft" && (
-                                                <button onClick={() => updatePack({ id: pack._id, status: "Review" })} className="text-indigo-600 hover:underline">Submit Review</button>
-                                            )}
-                                            {pack.status === "Review" && (
-                                                <button onClick={() => publishPack({ id: pack._id })} className="text-green-600 hover:underline">Publish</button>
-                                            )}
-                                            <button onClick={() => deletePack({ id: pack._id })} className="text-gray-400 hover:text-red-600">Delete</button>
+                                {filteredReveals.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                                            No reveals found. Use the "Write" tab to create content.
                                         </td>
                                     </tr>
-                                ))}
+                                ) : filteredReveals.map((reveal: any) => {
+                                    // Determine display status
+                                    const displayStatus = !reveal.isLinked
+                                        ? "Unlinked"
+                                        : reveal.status === "published"
+                                            ? "Published"
+                                            : reveal.status === "draft"
+                                                ? "Draft"
+                                                : "Review";
+
+                                    return (
+                                        <tr key={reveal._id} className="hover:bg-gray-50 transition-colors group">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm font-bold text-gray-900">{reveal.title || "Untitled"}</div>
+                                                <div className="text-[10px] font-mono text-gray-400 truncate max-w-xs">
+                                                    {(reveal.content || "").substring(0, 60)}...
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-xs font-medium text-indigo-600 uppercase">{reveal.type || "text"}</div>
+                                                {reveal.voice && (
+                                                    <div className="text-[11px] text-gray-500 capitalize">{reveal.voice}</div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={clsx(
+                                                    "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider",
+                                                    displayStatus === "Published" ? "bg-green-100 text-green-700" :
+                                                        displayStatus === "Review" ? "bg-yellow-100 text-yellow-700" :
+                                                            displayStatus === "Unlinked" ? "bg-purple-100 text-purple-700" :
+                                                                "bg-blue-100 text-blue-700"
+                                                )}>
+                                                    {displayStatus}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {reveal.isLinked ? (
+                                                    <div>
+                                                        <div className="text-xs font-medium text-gray-700">{reveal.linkedSceneName}</div>
+                                                        <div className="text-[11px] text-gray-400">{reveal.linkedObjectName}</div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400 italic">Not placed in scene</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-bold">
+                                                <button
+                                                    onClick={() => setPreviewData(reveal)}
+                                                    className="text-indigo-600 hover:underline"
+                                                >
+                                                    View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
+                        <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500">
+                            Showing {filteredReveals.length} of {allReveals?.length || 0} reveals
+                        </div>
                     </div>
                 </div>
             )}
