@@ -199,7 +199,7 @@ export const publishPack = mutation({
             tags: pack.tags,
             mediaUrl: pack.mediaRefs, // Link the media ref
             role: "canon",
-            status: "Published", // Title Case for UI consistency
+            status: "published", // Lowercase for backend consistency
             publishedAt: Date.now(),
             spaceId: finalSceneId,
         });

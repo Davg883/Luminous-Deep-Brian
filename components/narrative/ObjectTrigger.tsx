@@ -129,7 +129,7 @@ export default function ObjectTrigger({ x, y, label, domain = "workshop", isPort
                             textShadow: "0px 1px 4px rgba(0,0,0,0.9), 0px 0px 10px rgba(0,0,0,0.7)",
                         }}
                     >
-                        {hint}
+                        {label || "+"}
                     </span>
                 </div>
             </div>

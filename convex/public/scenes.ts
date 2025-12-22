@@ -42,7 +42,7 @@ export const getSceneObjects = query({
             const reveal = await ctx.db.get(obj.revealId);
             const revealStatus = reveal ? (reveal as any).status : undefined;
 
-            if (reveal && (revealStatus === "published" || revealStatus === undefined)) {
+            if (reveal && (revealStatus?.toLowerCase() === "published" || revealStatus === undefined)) {
                 // Return object if published (or undefined for legacy support during migration)
                 return obj;
             }
