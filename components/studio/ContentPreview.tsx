@@ -111,9 +111,9 @@ export function ContentPreview({ pack, sceneTitle, sceneBackgroundUrl }: { pack:
                     <p className="text-gray-400 mb-1 uppercase font-bold text-[9px]">Status</p>
                     <span className={clsx(
                         "px-2 py-0.5 rounded-full font-bold",
-                        displayStatus === "Published" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                        (displayStatus?.toLowerCase() === "published") ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
                     )}>
-                        {displayStatus === "Published" ? "PUBLISHED" : "NEEDS REVIEW"}
+                        {(displayStatus?.toLowerCase() === "published") ? "PUBLISHED" : "NEEDS REVIEW"}
                     </span>
                 </div>
                 <div>
