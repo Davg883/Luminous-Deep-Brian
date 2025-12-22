@@ -499,24 +499,23 @@ export default function ContentFactoryPage() {
                             {previewData && <span className="bg-purple-100 text-purple-700 text-[10px] font-black px-2 py-0.5 rounded">LIBRARY</span>}
                         </h2>
                         {previewData ? (
-                            <div className="flex flex-col h-full gap-4">
+                            <div className="flex flex-col h-full gap-4 relative">
                                 <ContentPreview
                                     pack={previewData}
                                     sceneTitle={previewData.linkedSceneName || "Unplaced"}
                                 />
-                                {(!previewData.isAnchored && !previewData.isLinked) && (
-                                    <button
-                                        onClick={() => {
-                                            // Fallback to domain if scene_slug is missing (common in Drafts)
-                                            const targetSlug = previewData.scene_slug || previewData.domain || "workshop";
-                                            router.push(`/studio/content/${targetSlug}?placeReveal=${previewData._id}`);
-                                        }}
-                                        className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 animate-pulse z-50 relative"
-                                    >
-                                        <MapPin className="w-6 h-6" />
-                                        <span>ANCHOR TO {(previewData.scene_slug || previewData.domain || "SCENE").toUpperCase()}</span>
-                                    </button>
-                                )}
+                                {/* DEBUG: Force Anchor Button Visibility */}
+                                <button
+                                    onClick={() => {
+                                        // Fallback to domain if scene_slug is missing (common in Drafts)
+                                        const targetSlug = previewData.scene_slug || previewData.domain || "workshop";
+                                        router.push(`/studio/content/${targetSlug}?placeReveal=${previewData._id}`);
+                                    }}
+                                    className="absolute top-16 right-8 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-xl shadow-2xl z-[9999] flex items-center gap-2 animate-bounce cursor-pointer border-2 border-white/20"
+                                >
+                                    <MapPin className="w-6 h-6" />
+                                    <span>ANCHOR TO {(previewData.scene_slug || previewData.domain || "SCENE").toUpperCase()}</span>
+                                </button>
                             </div>
                         ) : (
                             <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-center p-8">

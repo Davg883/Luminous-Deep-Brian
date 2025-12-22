@@ -95,27 +95,6 @@ export function ContentPreview({ pack, sceneTitle, sceneBackgroundUrl }: { pack:
                     </div>
                 </div>
 
-                {/* 3. Mini-Scene Map (Coordinate Check) */}
-                <div className="absolute bottom-4 right-4 w-32 h-24 bg-black/50 backdrop-blur-md border border-white/20 rounded-lg overflow-hidden shadow-2xl opacity-50 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-                    {sceneBackgroundUrl ? (
-                        <div className="relative w-full h-full">
-                            <img src={sceneBackgroundUrl} alt="Context" className="w-full h-full object-cover opacity-50 grayscale" />
-                            {/* Coordinate Dot */}
-                            <div
-                                className="absolute w-2 h-2 bg-red-500 rounded-full border border-white shadow-[0_0_10px_rgba(255,0,0,0.8)] transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300"
-                                style={{ left: `${displayX}%`, top: `${displayY}%` }}
-                            />
-                            <div className="absolute bottom-1 left-1 text-[8px] text-white font-mono bg-black/50 px-1 rounded">
-                                {displayX},{displayY}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-500 font-mono">
-                            NO MAP
-                        </div>
-                    )}
-                </div>
-
                 {/* Decor */}
                 <div className="absolute top-4 left-4 text-[10px] text-white/30 font-mono z-0 pointer-events-none">
                     SCENE: {sceneTitle?.toUpperCase() || "..."}
