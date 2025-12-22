@@ -2,6 +2,7 @@ import { action } from "../_generated/server";
 import { v } from "convex/values";
 import { requireStudioAccessAction } from "../auth/helpers";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { internal } from "../_generated/api";
 
 export const generateContent = action({
     args: {
@@ -12,16 +13,41 @@ export const generateContent = action({
     handler: async (ctx, args) => {
         await requireStudioAccessAction(ctx);
 
+        // ═══════════════════════════════════════════════════════════════
+        // TELEMETRY: Start Run
+        // ═══════════════════════════════════════════════════════════════
+        let runId: any = null;
+        try {
+            runId = await ctx.runMutation(internal.studio.runs.startRunInternal, {
+                workflowName: "NARRATIVE_REFINEMENT",
+                triggeredBy: "studio-user",
+                initialMessage: `Magic Paste initiated for voice: ${args.voice || "neutral"}`,
+            });
+        } catch (e) {
+            console.warn("Telemetry logging failed (non-critical):", e);
+        }
+
         const apiKey = process.env.GOOGLE_API_KEY;
-        if (!apiKey) throw new Error("Missing GOOGLE_API_KEY");
+        if (!apiKey) {
+            // Log error if we have a runId
+            if (runId) {
+                try {
+                    await ctx.runMutation(internal.studio.runs.failRunInternal, {
+                        runId,
+                        errorMessage: "Missing GOOGLE_API_KEY environment variable",
+                    });
+                } catch (e) { /* ignore telemetry errors */ }
+            }
+            throw new Error("Missing GOOGLE_API_KEY");
+        }
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "models/gemini-3-flash-preview",
+            model: "gemini-1.5-flash-latest",
             generationConfig: { responseMimeType: "application/json" }
         });
 
-        // Voice Persona Definitions (kept as is)
+        // Voice Persona Definitions
         const personas = {
             cassie: `You are Cassie (The Workshop). 
             Tone: Energetic, messy, optimistic, hands-on. 
@@ -50,7 +76,7 @@ export const generateContent = action({
             systemInstruction = `
             INSTRUCTION: You must use a chain-of-thought reasoning process to analyze the character's voice and the narrative context before outputting the final JSON. Ensure the tone matches the owner (Cassie/Eleanor/Julian) perfectly.
 
-            You are the Luminous Deep Narrative Engine powered by Gemini 3.
+            You are the Luminous Deep Narrative Engine powered by Gemini.
             Your primary goal is to refine raw story notes into a character's specific voice while maintaining strict JSON integrity.
 
             VOICE GUIDES:
@@ -87,30 +113,16 @@ export const generateContent = action({
             }
 
             LOCALISATION PROTOCOL: en-GB (BRITISH)
-            1. ORTHOGRAPHY: You must strictly use British spelling. Use the 'Double-Anchor' reasoning technique. Specifically:
-               - Endings: -OUR (Colour, Harbour), -RE (Centre, Theatre), -ISE (Optimise, Realise).
-               - Character Check: Do not use 'Center', 'Color', or 'Optimize'.
-            2. VOCABULARY SWAP: Prevent US visual leakage by substituting these terms in all descriptions and hints:
-               - Sidewalk -> Pavement / Flagstones
-               - Trash Can -> Bin / Rubbish Bin
-               - Apartment -> Flat
-               - Elevator -> Lift
-               - Trunk -> Boot
-               - Flashlight -> Torch
-            3. AESTHETIC ANCHORS: When describing scenes or providing hints, use British 'shibboleths':
-               - Reference 'Transport typography' for signage.
-               - Reference 'BS 1363 sockets' for interior power.
-               - Reference 'London Stock Brick' or 'Limestone' rather than generic red brick.
-            4. AUDIO/TONE SHIELD: Avoid US corporate buzzwords to maintain RP (Received Pronunciation) logic.
-               - BANISHED: 'Hustle', 'Empowerment', 'Awesome', 'Super', 'Deep Dive'.
-               - ADOPTED: 'Duty', 'Responsibility', 'Somber', 'Reflective', 'Matter-of-fact'.
+            1. ORTHOGRAPHY: Use British spelling (-OUR, -RE, -ISE).
+            2. VOCABULARY: Use British terms (Pavement, Bin, Flat, Lift, Boot, Torch).
+            3. AESTHETIC: Reference British details (Transport typography, BS 1363 sockets).
+            4. TONE: Avoid US buzzwords. Use 'Duty', 'Responsibility', 'Reflective'.
 
             DIRECTIVES:
             1. Output ONLY valid JSON.
             2. Create the JSON based on the raw text provided.
             3. Infer the best fitting character voice and scene if not obvious.
-            4. TITLE REQUIREMENT: CRITICAL: You are forbidden from returning the strings 'Enter Title', 'Untitled', or any placeholder. You are a Master Storyteller. If the user provides a fragment, you MUST synthesize a unique, evocative title (e.g., 'The Rustling Panes', '982 Millibars', 'Whispers in the Glass') based on the content.
-            5. THINKING PROCESS: Before naming, analyze the scene (Boathouse/Study) to ensure the title vocabulary fits the environment. Then, perform a character-by-character scan. If you find an Americanised word, you MUST re-reason the sentence to align with the British latent space.
+            4. CRITICAL: Generate a unique, evocative title (e.g., 'The Rustling Panes', 'Whispers in the Glass').
             `;
         }
 
@@ -119,21 +131,47 @@ export const generateContent = action({
         Task: ${isJson ? "Refresh the 'content' of the provided JSON content object." : "Convert this text into a JSON content pack."}
         Input: ${args.prompt}`;
 
-        const result = await model.generateContent(fullPrompt);
-        const response = await result.response;
-        let text = response.text();
+        try {
+            const result = await model.generateContent(fullPrompt);
+            const response = await result.response;
+            let text = response.text();
 
-        // Aggressive "Fuzzy" JSON Cleaner
-        // Finds everything between the first '{' and the last '}'
-        const match = text.match(/\{[\s\S]*\}/);
+            // Aggressive "Fuzzy" JSON Cleaner
+            const match = text.match(/\{[\s\S]*\}/);
 
-        if (match) {
-            text = match[0];
-        } else {
-            // Fallback: If no braces found, strip markdown but return text (it might be a partial fragment)
-            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            if (match) {
+                text = match[0];
+            } else {
+                text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // TELEMETRY: Complete Run
+            // ═══════════════════════════════════════════════════════════════
+            if (runId) {
+                try {
+                    await ctx.runMutation(internal.studio.runs.completeRunInternal, {
+                        runId,
+                        message: `Narrative successfully refined for voice: ${args.voice || "neutral"}`,
+                    });
+                } catch (e) { /* ignore telemetry errors */ }
+            }
+
+            return text;
+        } catch (error: any) {
+            // ═══════════════════════════════════════════════════════════════
+            // TELEMETRY: Fail Run
+            // ═══════════════════════════════════════════════════════════════
+            if (runId) {
+                try {
+                    await ctx.runMutation(internal.studio.runs.failRunInternal, {
+                        runId,
+                        errorMessage: error.message || "AI generation failed",
+                    });
+                } catch (e) { /* ignore telemetry errors */ }
+            }
+            throw error;
         }
-
-        return text;
     },
 });
+

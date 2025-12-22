@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Libre_Baskerville, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/auth/ConvexClientProvider";
+import { AmbientProvider } from "@/components/narrative/AmbientContext";
 import AmbientEngine from "@/components/narrative/AmbientEngine";
 
 const inter = Inter({
@@ -38,8 +39,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${libreBaskerville.variable} ${jetbrainsMono.variable} antialiased`}>
         <ConvexClientProvider>
-          <AmbientEngine />
-          {children}
+          <AmbientProvider>
+            <AmbientEngine />
+            {children}
+          </AmbientProvider>
         </ConvexClientProvider>
       </body>
     </html>

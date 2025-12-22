@@ -57,6 +57,8 @@ export const syncCloudinaryAssets = internalAction({
                         else if (place === 'home' || place === 'seagrove') matchedSlug = 'home';
                         else if (place === 'lounge' || place === 'hearth') matchedSlug = 'lounge';
                         else if (place === 'kitchen' || place === 'galley') matchedSlug = 'kitchen';
+                        // Control Room aliases
+                        else if (place === 'luminous' || place === 'deep' || place === 'controlroom' || place === 'control') matchedSlug = 'luminous-deep';
 
                         if (matchedSlug && (type === 'scene' || type === 'zone')) {
                             console.log(`Syncing ${matchedSlug} with media: ${asset.secure_url}`);

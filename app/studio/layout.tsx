@@ -16,7 +16,8 @@ export default function StudioLayout({
     const navItems = [
         { label: "Dashboard", href: "/studio" },
         { label: "Content Factory", href: "/studio/content" },
-        { label: "Media Library", href: "/studio/media" }, // Placeholder
+        { label: "Media Library", href: "/studio/media" },
+        { label: "Agent Manager", href: "/studio/agents" }, // The Control Room
     ];
 
 

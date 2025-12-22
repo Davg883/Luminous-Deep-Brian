@@ -141,17 +141,20 @@ export default function ContentFactoryPage() {
             const warnings: string[] = [];
 
             // The "Everything Mapper" normalization
+            // "Reach Inside" nested objects (AI sometimes returns { reveal: { content: ... } })
+            const nested = data.reveal || data.item || data.result || {};
             const normalized = {
-                hotspotId: data.hotspot_id || data.hotspotId || (data.title ? data.title.toLowerCase().replace(/[^a-z0-9]+/g, '_') : ""),
-                title: data.title || "Untitled", // Keep original title for validation warning, don't auto-fix yet
-                sceneSlug: data.scene_slug || data.sceneSlug || data.domain || "workshop",
-                bodyCopy: data.content || data.body_copy || data.bodyCopy || "",
-                hintLine: data.hint || data.hint_line || data.hintLine || "",
-                revealType: data.type || data.revealType || "text",
-                tags: data.tags || [],
-                canonRefs: data.canon_refs || data.canonRefs || [],
-                mediaRefs: data.media_refs || data.mediaRefs || "",
-                version: data.version || 1
+                hotspotId: data.hotspot_id || data.hotspotId || nested.hotspot_id || (data.title || nested.title ? (data.title || nested.title).toLowerCase().replace(/[^a-z0-9]+/g, '_') : ""),
+                title: data.title || nested.title || "Untitled",
+                sceneSlug: data.scene_slug || data.sceneSlug || data.domain || nested.scene_slug || "workshop",
+                bodyCopy: data.content || data.body_copy || data.bodyCopy || nested.content || nested.body_copy || "",
+                hintLine: data.hint || data.hint_line || data.hintLine || nested.hint || "",
+                revealType: data.type || data.revealType || nested.type || "text",
+                tags: data.tags || nested.tags || [],
+                canonRefs: data.canon_refs || data.canonRefs || nested.canon_refs || [],
+                mediaRefs: data.media_refs || data.mediaRefs || nested.media_refs || "",
+                version: data.version || nested.version || 1,
+                voice: data.voice || nested.voice || undefined
             };
 
             // Validation Logic
@@ -195,17 +198,20 @@ export default function ContentFactoryPage() {
                 console.log("Processing Item:", item);
 
                 // The "Everything Mapper" normalization
+                // "Reach Inside" nested objects (AI sometimes returns { reveal: { content: ... } })
+                const nested = item.reveal || item.item || item.result || {};
+                const rawTitle = item.title || nested.title;
                 const normalized = {
-                    hotspotId: item.hotspot_id || item.hotspotId || (item.title ? item.title.toLowerCase().replace(/[^a-z0-9]+/g, '_') : `hotspot_${Date.now()}`),
-                    title: (!item.title || item.title === "Enter Title" || item.title === "Untitled") ? "A New Discovery" : item.title,
-                    sceneSlug: item.scene_slug || item.sceneSlug || item.domain || "workshop",
-                    bodyCopy: item.content || item.body_copy || item.bodyCopy || "",
-                    hintLine: item.hint || item.hint_line || item.hintLine || "Inspect closer.",
-                    revealType: item.type || item.revealType || "text",
-                    tags: item.tags || [],
-                    canonRefs: item.canon_refs || item.canonRefs || [],
-                    mediaRefs: item.media_refs || item.mediaRefs || "",
-                    version: item.version || 1
+                    hotspotId: item.hotspot_id || item.hotspotId || nested.hotspot_id || (rawTitle ? rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '_') : `hotspot_${Date.now()}`),
+                    title: (!rawTitle || rawTitle === "Enter Title" || rawTitle === "Untitled") ? "A New Discovery" : rawTitle,
+                    sceneSlug: item.scene_slug || item.sceneSlug || item.domain || nested.scene_slug || "workshop",
+                    bodyCopy: item.content || item.body_copy || item.bodyCopy || nested.content || nested.body_copy || "",
+                    hintLine: item.hint || item.hint_line || item.hintLine || nested.hint || "Inspect closer.",
+                    revealType: item.type || item.revealType || nested.type || "text",
+                    tags: item.tags || nested.tags || [],
+                    canonRefs: item.canon_refs || item.canonRefs || nested.canon_refs || [],
+                    mediaRefs: item.media_refs || item.mediaRefs || nested.media_refs || "",
+                    version: item.version || nested.version || 1
                 };
                 console.log("Normalized Data:", normalized);
 

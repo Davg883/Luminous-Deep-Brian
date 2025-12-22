@@ -2,8 +2,8 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import SceneStage from "@/components/narrative/SceneStage";
 import ObjectTrigger from "@/components/narrative/ObjectTrigger";
 import RevealCard from "@/components/narrative/RevealCard";
@@ -14,14 +14,37 @@ import { Id } from "@/convex/_generated/dataModel";
 
 export default function DomainPage() {
     const params = useParams();
-    // Safe cast params.domain to our Domain type (in real app validate this)
+    const router = useRouter();
     const domain = (params.domain as string);
 
-    // Strict Domain Validation
+    // Redirect luminous-deep to its dedicated page
+    useEffect(() => {
+        if (domain === "luminous-deep") {
+            router.replace("/luminous-deep");
+        }
+    }, [domain, router]);
+
+    // Strict Domain Validation (luminous-deep has its own dedicated page)
     const validDomains = ["workshop", "study", "boathouse", "home", "lounge", "kitchen"];
+
+    // If it's luminous-deep, show loading while redirect happens
+    if (domain === "luminous-deep") {
+        return (
+            <div className="flex items-center justify-center h-screen bg-[#0a0a12] text-[var(--deep-accent)]">
+                <div className="animate-pulse font-mono">Descending to the Control Room...</div>
+            </div>
+        );
+    }
+
     if (!validDomains.includes(domain)) {
-        // If we are mistakenly catching 'studio' or other routes, let's explicit fail
-        return <div className="p-10 text-red-500">Invalid Domain: {domain}</div>;
+        return (
+            <div className="flex items-center justify-center h-screen bg-sand text-driftwood">
+                <div className="text-center">
+                    <h1 className="text-2xl font-serif mb-2">Unknown Territory</h1>
+                    <p className="text-sm opacity-60">The path to "{domain}" does not exist.</p>
+                </div>
+            </div>
+        );
     }
 
     // Fetch scene by slug == domain (for MVP)
@@ -34,18 +57,51 @@ export default function DomainPage() {
     // Interactive State
     const [activeRevealId, setActiveRevealId] = useState<Id<"reveals"> | null>(null);
 
-    // Helper to fetch the active reveal details (could be optimized)
+    // Helper to fetch the active reveal details
     const activeReveal = useQuery(api.public.scenes.getReveal,
         activeRevealId ? { revealId: activeRevealId } : "skip"
     );
 
-    if (!scene) {
+    // Loading state
+    if (scene === undefined) {
         return (
             <div className="flex items-center justify-center h-screen bg-sand text-driftwood">
                 <div className="animate-pulse">Locating {domain}...</div>
             </div>
         );
     }
+
+    // Scene not found - "Door is Locked" state
+    if (scene === null) {
+        return (
+            <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-slate-900 to-slate-950 text-white">
+                <div className="text-center">
+                    <div className="text-6xl mb-6">🚪</div>
+                    <h1 className="text-3xl font-serif mb-4">The Door is Locked</h1>
+                    <p className="text-sm opacity-60 max-w-md mb-8">
+                        This room hasn't been prepared for visitors yet.
+                        Perhaps try another path.
+                    </p>
+                    <button
+                        onClick={() => router.push("/")}
+                        className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm"
+                    >
+                        Return to the Shore
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Handle object click - either navigate (portal) or reveal content
+    const handleObjectClick = (obj: any) => {
+        // Check if this is a transition/portal object with a destination
+        if (obj.role === "transition" && obj.destinationSlug) {
+            router.push(obj.destinationSlug);
+        } else if (obj.revealId) {
+            setActiveRevealId(obj.revealId);
+        }
+    };
 
     return (
         <>
@@ -65,7 +121,8 @@ export default function DomainPage() {
                         y={obj.y}
                         label={obj.name}
                         domain={validatedDomain}
-                        onClick={() => setActiveRevealId(obj.revealId)}
+                        isPortal={obj.role === "transition"}
+                        onClick={() => handleObjectClick(obj)}
                     />
                 ))}
             </SceneStage>

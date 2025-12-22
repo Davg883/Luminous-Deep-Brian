@@ -8,6 +8,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useState, useEffect } from "react";
 
+type TruthMode = "factual" | "creative";
+
 interface RevealCardProps {
     title: string;
     content: string;
@@ -17,6 +19,7 @@ interface RevealCardProps {
     onClose: () => void;
     mediaUrl?: string;
     isEmbedded?: boolean;
+    truthMode?: TruthMode; // NEW: Distinguishes factual vs creative artefacts
 }
 
 const contentVariants: Variants = {
@@ -59,8 +62,12 @@ export default function RevealCard({
     isOpen,
     onClose,
     mediaUrl,
-    isEmbedded = false
+    isEmbedded = false,
+    truthMode
 }: RevealCardProps) {
+    // Determine truthMode styling
+    const isFactual = truthMode === "factual";
+    const isCreative = truthMode === "creative";
     const [canClose, setCanClose] = useState(false);
 
     useEffect(() => {
@@ -105,8 +112,31 @@ export default function RevealCard({
                             // Cassie (Workshop): Draft Aesthetic
                             domain === "workshop" && "bg-white text-stone-800 font-sans border border-stone-200 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)] rotate-1",
                             // Home: Neutral Glass
-                            domain === "home" && "bg-white/90 backdrop-blur-md text-driftwood border border-white/20"
+                            domain === "home" && "bg-white/90 backdrop-blur-md text-driftwood border border-white/20",
+                            // Luminous Deep (Control Room): Terminal Aesthetic
+                            domain === "luminous-deep" && "bg-[var(--deep-bg)] text-[var(--deep-text)] font-mono border border-[var(--deep-accent)]/40 shadow-[0_0_40px_rgba(14,165,233,0.2)]",
+                            // TruthMode Overrides for Luminous Deep (High-Fidelity Artefact Preview)
+                            // Factual: Technical Schematic - Blueprint lines, precise, documented
+                            domain === "luminous-deep" && isFactual && "!bg-[#0a1628] !text-sky-300 !border-2 !border-sky-500/60 !ring-2 !ring-sky-500/20",
+                            // Creative: Draft Note - Post-it style, Cassie's voice, atmospheric
+                            domain === "luminous-deep" && isCreative && "!bg-amber-50 !text-stone-800 !font-sans !border-2 !border-amber-300 !shadow-[4px_4px_0px_rgba(217,119,6,0.3)] !rotate-1",
+                            // Generic TruthMode Overrides (for other domains)
+                            domain !== "luminous-deep" && isFactual && "!border-2 !border-sky-500/50 !ring-2 !ring-sky-500/20",
+                            domain !== "luminous-deep" && isCreative && "!border !border-amber-400/30 !ring-1 !ring-amber-400/10"
                         )}
+                        style={{
+                            // Additional truthMode glow effects
+                            ...(isFactual && domain === "luminous-deep" && {
+                                boxShadow: "0 0 30px rgba(14, 165, 233, 0.25), 0 4px 30px rgba(0, 0, 0, 0.2)",
+                                backgroundImage: "linear-gradient(rgba(14, 165, 233, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(14, 165, 233, 0.03) 1px, transparent 1px)",
+                                backgroundSize: "20px 20px"
+                            }),
+                            ...(isCreative && domain === "luminous-deep" && {
+                                boxShadow: "4px 4px 0px rgba(217, 119, 6, 0.3), 0 4px 30px rgba(0, 0, 0, 0.1)"
+                            }),
+                            ...(isFactual && domain !== "luminous-deep" && { boxShadow: "0 0 20px rgba(14, 165, 233, 0.15), 0 4px 30px rgba(0, 0, 0, 0.1)" }),
+                            ...(isCreative && domain !== "luminous-deep" && { boxShadow: "0 0 30px rgba(245, 158, 11, 0.2), 0 4px 30px rgba(0, 0, 0, 0.1)" }),
+                        }}
                     >
                         {/* Dwell Progress Bar */}
                         <div className="h-1 bg-current opacity-10 w-full absolute top-0 left-0 z-10">
@@ -121,9 +151,21 @@ export default function RevealCard({
                         {/* Header */}
                         <div className="p-6 pb-0 flex-shrink-0">
                             <div className="flex justify-between items-start mb-4 border-b border-current/10 pb-4">
-                                <h3 className={clsx("text-lg font-bold tracking-tight", domain === "boathouse" && "uppercase tracking-widest text-xs")}>
-                                    {title}
-                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className={clsx("text-lg font-bold tracking-tight", domain === "boathouse" && "uppercase tracking-widest text-xs")}>
+                                        {title}
+                                    </h3>
+                                    {/* TruthMode Badge */}
+                                    {truthMode && (
+                                        <span className={clsx(
+                                            "px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full",
+                                            isFactual && "bg-sky-500/20 text-sky-400 border border-sky-500/30",
+                                            isCreative && "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                        )}>
+                                            {truthMode}
+                                        </span>
+                                    )}
+                                </div>
                                 <button
                                     onClick={onClose}
                                     disabled={!canClose}

@@ -41,7 +41,8 @@ export const updateScene = mutation({
             v.literal("boathouse"),
             v.literal("home"),
             v.literal("lounge"),
-            v.literal("kitchen")
+            v.literal("kitchen"),
+            v.literal("luminous-deep")
         ),
     },
     handler: async (ctx, args) => {

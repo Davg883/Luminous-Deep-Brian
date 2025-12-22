@@ -12,6 +12,14 @@ export const getScene = query({
     },
 });
 
+// List all scenes (for space selector)
+export const listScenes = query({
+    args: {},
+    handler: async (ctx) => {
+        return await ctx.db.query("scenes").collect();
+    },
+});
+
 // Get objects for a scene, filtering for published reveals
 export const getSceneObjects = query({
     args: { sceneId: v.id("scenes") },
@@ -25,6 +33,12 @@ export const getSceneObjects = query({
         // Note: For high performance at scale, we'd denormalize 'status' onto the object or index better.
         // For current scale (~20 objects per scene), this is acceptable.
         const objectsWithStatus = await Promise.all(objects.map(async (obj: any) => {
+            // Portal/transition objects don't have revealId - always include them
+            if (obj.role === "transition" || !obj.revealId) {
+                return obj;
+            }
+
+            // Regular objects: check reveal status
             const reveal = await ctx.db.get(obj.revealId);
             const revealStatus = reveal ? (reveal as any).status : undefined;
 
@@ -46,6 +60,81 @@ export const getReveal = query({
     handler: async (ctx, args) => {
         return await ctx.db.get(args.revealId);
     }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PUBLIC AGENTS QUERIES (for Control Room HUD)
+// ═══════════════════════════════════════════════════════════════
+
+// List all agents (public - no auth required)
+export const listAgents = query({
+    args: {},
+    handler: async (ctx) => {
+        try {
+            const agents = await ctx.db.query("agents").collect();
+
+            // Enrich with space information
+            const enrichedAgents = await Promise.all(
+                agents.map(async (agent) => {
+                    try {
+                        const space = agent.homeSpaceId ? await ctx.db.get(agent.homeSpaceId) : null;
+                        return {
+                            ...agent,
+                            homeSpace: space ? {
+                                slug: space.slug,
+                                title: space.title,
+                                domain: space.domain,
+                            } : null,
+                        };
+                    } catch {
+                        return { ...agent, homeSpace: null };
+                    }
+                })
+            );
+
+            return enrichedAgents;
+        } catch (error) {
+            // Return empty array if agents table doesn't exist yet
+            console.warn("Failed to fetch agents:", error);
+            return [];
+        }
+    },
+});
+
+// List only active agents (for the HUD swarm display)
+export const listActiveAgents = query({
+    args: {},
+    handler: async (ctx) => {
+        try {
+            const agents = await ctx.db.query("agents").collect();
+            const activeAgents = agents.filter(a => a.isActive);
+
+            // Enrich with space information
+            const enrichedAgents = await Promise.all(
+                activeAgents.map(async (agent) => {
+                    try {
+                        const space = agent.homeSpaceId ? await ctx.db.get(agent.homeSpaceId) : null;
+                        return {
+                            ...agent,
+                            homeSpace: space ? {
+                                slug: space.slug,
+                                title: space.title,
+                                domain: space.domain,
+                            } : null,
+                        };
+                    } catch {
+                        return { ...agent, homeSpace: null };
+                    }
+                })
+            );
+
+            return enrichedAgents;
+        } catch (error) {
+            // Return empty array if agents table doesn't exist yet
+            console.warn("Failed to fetch active agents:", error);
+            return [];
+        }
+    },
 });
 
 // Internal mutation to update background media
@@ -73,3 +162,4 @@ export const updateSceneMedia = internalMutation({
         });
     },
 });
+

@@ -21,17 +21,31 @@
 
   /* Domain: Boathouse (Timber & Blueprint) */
   --boat-bg: #0c0a09;
-  --boat-line: #3e5c76;
-  --boat-glow: #f59e0b;
+  --boat-line: #06b6d4;
+  /* Bright vibrant cyan (Cyan 500) */
+  --boat-glow: #fbbf24;
+  /* Neon amber (Amber 400) */
 
   /* Domain: Lounge (Hearth) */
   --lounge-bg: #1c1917;
-  --lounge-accent: #b45309;
+  --lounge-accent: #f59e0b;
+  /* Neon amber (Amber 500) - more visible against wood */
   --lounge-text: #e7e5e4;
 
   /* Domain: Kitchen (Utility) */
   --kitchen-bg: #1e293b;
   --kitchen-accent: #38bdf8;
+
+  /* Domain: Luminous Deep (The Control Room / Sub-Basement) */
+  --deep-bg: #0c0a09;
+  --deep-accent: #0ea5e9;
+  /* CRT Blue */
+  --deep-glow: #f59e0b;
+  /* Lava Lamp Amber */
+  --deep-text: #a3e635;
+  /* Terminal Green */
+  --deep-dim: #27272a;
+  /* Dim panel */
 
   --background: var(--sand);
   --foreground: var(--driftwood);
@@ -64,6 +78,12 @@
 
   --color-kitchen-bg: var(--kitchen-bg);
   --color-kitchen-accent: var(--kitchen-accent);
+
+  --color-deep-bg: var(--deep-bg);
+  --color-deep-accent: var(--deep-accent);
+  --color-deep-glow: var(--deep-glow);
+  --color-deep-text: var(--deep-text);
+  --color-deep-dim: var(--deep-dim);
 
   --font-sans: var(--font-inter);
   --font-serif: var(--font-libre);
@@ -111,5 +131,61 @@ body {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
     /* Chrome, Safari, Opera */
+  }
+
+  /* Terminal Aesthetic for Agent Manager */
+  .terminal-panel {
+    @apply bg-[var(--deep-bg)] border border-[var(--deep-accent)]/30 rounded-lg font-mono;
+    box-shadow:
+      0 0 20px rgba(14, 165, 233, 0.1),
+      inset 0 1px 0 rgba(14, 165, 233, 0.1);
+  }
+
+  .terminal-glow {
+    text-shadow: 0 0 10px var(--deep-accent), 0 0 20px var(--deep-accent);
+  }
+
+  .terminal-amber-glow {
+    text-shadow: 0 0 10px var(--deep-glow), 0 0 20px var(--deep-glow);
+  }
+
+  .crt-scanlines {
+    position: relative;
+  }
+
+  .crt-scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px);
+    pointer-events: none;
+  }
+
+  /* Lava lamp ambient glow */
+  .lava-glow {
+    animation: lava-pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes lava-pulse {
+
+    0%,
+    100% {
+      opacity: 0.6;
+      filter: blur(20px);
+    }
+
+    50% {
+      opacity: 1;
+      filter: blur(30px);
+    }
+  }
+
+  /* Radial gradient for Control Room */
+  .bg-gradient-radial {
+    background: radial-gradient(circle at center, var(--tw-gradient-stops));
   }
 }

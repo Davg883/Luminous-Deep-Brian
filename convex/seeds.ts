@@ -258,7 +258,88 @@ export const seedAll = mutation({
             ["utility"]
         );
 
-        return "Initial Canon Seeded via seedAll (Home, Study, Workshop, Boathouse, Lounge, Kitchen)";
+        // 7. Luminous Deep - The Control Room (Sub-Basement)
+        await upsertSceneFull(
+            ctx,
+            "control-room",
+            "The Control Room",
+            "luminous-deep",
+            "", // Placeholder for retro-tech background
+            [
+                {
+                    name: "System Console",
+                    x: 50, y: 50,
+                    role: "system",
+                    revealType: "text",
+                    revealTitle: "SYSTEM STATUS",
+                    revealContent: "```\n[LUMINOUS DEEP v0.1.0]\n----------------------\nAGENTS ONLINE: 3\nWORKFLOWS: IDLE\nARTEFACTS: 24\n----------------------\nAll systems nominal.\n```",
+                    hint: "Access system console",
+                    voice: "systems",
+                    revealTags: ["system", "meta"],
+                    status: "published",
+                    publishedAt: Date.now(),
+                }
+            ],
+            ["meta", "control"],
+            undefined // playbackSpeed
+        );
+
+        // Seed the canonical agents
+        const controlRoom = await ctx.db.query("scenes").withIndex("by_slug", (q: any) => q.eq("slug", "control-room")).first();
+        const boathouse = await ctx.db.query("scenes").withIndex("by_slug", (q: any) => q.eq("slug", "boathouse")).first();
+        const study = await ctx.db.query("scenes").withIndex("by_slug", (q: any) => q.eq("slug", "study")).first();
+        const workshop = await ctx.db.query("scenes").withIndex("by_slug", (q: any) => q.eq("slug", "workshop")).first();
+
+        // Check if agents already exist before inserting
+        const existingJulian = await ctx.db.query("agents").withIndex("by_name", (q: any) => q.eq("name", "Julian")).first();
+        if (!existingJulian && boathouse) {
+            await ctx.db.insert("agents", {
+                name: "Julian",
+                homeSpaceId: boathouse._id,
+                role: "Analyst",
+                description: "The methodical weatherman. Reads tides, tracks patterns, provides grounded analysis.",
+                capabilities: ["read_tides", "analyze_patterns", "forecast", "navigate"],
+                tools: ["search", "analyze", "summarize"],
+                autonomy: 3,
+                voice: "julian",
+                isActive: true,
+                createdAt: Date.now(),
+            });
+        }
+
+        const existingEleanor = await ctx.db.query("agents").withIndex("by_name", (q: any) => q.eq("name", "Eleanor")).first();
+        if (!existingEleanor && study) {
+            await ctx.db.insert("agents", {
+                name: "Eleanor",
+                homeSpaceId: study._id,
+                role: "Curator",
+                description: "The reflective archivist. Preserves memories, curates meaning, surfaces connections.",
+                capabilities: ["archive", "curate", "reflect", "connect"],
+                tools: ["search", "organize", "generate"],
+                autonomy: 2,
+                voice: "eleanor",
+                isActive: true,
+                createdAt: Date.now(),
+            });
+        }
+
+        const existingCassie = await ctx.db.query("agents").withIndex("by_name", (q: any) => q.eq("name", "Cassie")).first();
+        if (!existingCassie && workshop) {
+            await ctx.db.insert("agents", {
+                name: "Cassie",
+                homeSpaceId: workshop._id,
+                role: "Maker",
+                description: "The energetic builder. Sketches ideas, iterates fast, embraces the draft.",
+                capabilities: ["sketch", "prototype", "iterate", "build"],
+                tools: ["generate", "edit", "transform"],
+                autonomy: 4,
+                voice: "cassie",
+                isActive: true,
+                createdAt: Date.now(),
+            });
+        }
+
+        return "Initial Canon Seeded via seedAll (Home, Study, Workshop, Boathouse, Lounge, Kitchen, Control Room + Agents)";
     }
 });
 
@@ -334,7 +415,94 @@ export const seedInitialCanon = mutation({
             ["creation"]
         );
 
-        return "Initial Canon Seeded (Home, Study, Workshop)";
+        // 4. Control Room (Luminous Deep)
+        await upsertSceneFull(
+            ctx,
+            "luminous-deep",
+            "The Luminous Deep",
+            "luminous-deep",
+            "https://res.cloudinary.com/dptqxjhb8/video/upload/v1766235198/House_video_z7n1yj.mp4", // Placeholder - door entry video
+            [], // No initial objects - this is the Agentic HUD space
+            ["control", "system", "agents"],
+            1.0
+        );
+
+        return "Initial Canon Seeded (Home, Study, Workshop, Control Room)";
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CONTROL ROOM FIX - Quick mutation to ensure the scene exists
+// ═══════════════════════════════════════════════════════════════
+export const ensureControlRoomExists = mutation({
+    args: {},
+    handler: async (ctx) => {
+        // Check if scene already exists
+        const existing = await ctx.db
+            .query("scenes")
+            .withIndex("by_slug", (q: any) => q.eq("slug", "luminous-deep"))
+            .first();
+
+        if (existing) {
+            return { status: "exists", id: existing._id };
+        }
+
+        // Create the Control Room scene
+        const sceneId = await ctx.db.insert("scenes", {
+            slug: "luminous-deep",
+            title: "The Luminous Deep",
+            domain: "luminous-deep" as any,
+            backgroundMediaUrl: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1766235198/House_video_z7n1yj.mp4",
+            isPublished: true,
+            tags: ["control", "system", "agents"],
+            tagline: "Where the engineers watch the machine dream.",
+            mood: ["retro-futurist", "terminal", "analytical"],
+            allowedTools: ["telemetry", "agent-management", "workflow-runner"],
+        });
+
+        return { status: "created", id: sceneId };
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PORTAL TO CONTROL ROOM - Add the Heavy Door to Boathouse
+// ═══════════════════════════════════════════════════════════════
+export const addPortalToBoathouse = mutation({
+    args: {},
+    handler: async (ctx) => {
+        // Find the Boathouse scene
+        const boathouse = await ctx.db
+            .query("scenes")
+            .withIndex("by_slug", (q: any) => q.eq("slug", "boathouse"))
+            .first();
+
+        if (!boathouse) {
+            return { status: "error", message: "Boathouse scene not found. Run seedAll first." };
+        }
+
+        // Check if portal already exists
+        const existingObjects = await ctx.db
+            .query("objects")
+            .withIndex("by_scene", (q: any) => q.eq("sceneId", boathouse._id))
+            .collect();
+
+        const existingPortal = existingObjects.find(obj => obj.name === "The Heavy Door");
+        if (existingPortal) {
+            return { status: "exists", id: existingPortal._id };
+        }
+
+        // Create the portal object (no revealId needed - it navigates instead)
+        const portalId = await ctx.db.insert("objects", {
+            sceneId: boathouse._id,
+            name: "The Heavy Door",
+            x: 88,
+            y: 50,
+            hint: "Descent",
+            role: "transition",
+            destinationSlug: "/luminous-deep",
+        });
+
+        return { status: "created", id: portalId };
     }
 });
 
