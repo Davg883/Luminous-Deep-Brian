@@ -3,24 +3,31 @@ import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
+// Support multiple env var names for the API key
+const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export const fetchEmbedding = internalAction({
     args: { text: v.string() },
     handler: async (ctx, args) => {
-        console.log("Requesting embedding for text length:", args.text.length);
+        console.log("[EMBEDDING] Requesting embedding for text length:", args.text.length);
+        console.log("[EMBEDDING] API Key present:", !!apiKey);
+
+        if (!apiKey) {
+            throw new Error("No Google API key found. Set GOOGLE_API_KEY in Convex environment.");
+        }
 
         try {
             const model = genAI.getGenerativeModel({ model: "text-embedding-005" });
+
+            // Simple text-based embedding call
             const result = await model.embedContent(args.text);
 
-            // Gemini returns values object which contains embedding array
-            console.log("Embedding generated successfully, dimensions:", result.embedding.values.length);
+            console.log("[EMBEDDING] Success! Dimensions:", result.embedding.values.length);
             return result.embedding.values;
-        } catch (e) {
-            console.error("GOOGLE EMBEDDING ERROR:", e);
-            throw e;
+        } catch (e: any) {
+            console.error("[EMBEDDING] GOOGLE EMBEDDING ERROR:", e.message || e);
+            throw new Error(`Embedding failed: ${e.message || e}`);
         }
     }
 });

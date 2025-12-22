@@ -38,7 +38,7 @@ export default function ContentFactoryPage() {
     const deletePack = useMutation(api.studio.content.deletePack);
     const deleteReveal = useMutation(api.studio.content.deleteReveal);
     const reassignRevealSpace = useMutation(api.studio.content.reassignRevealSpace);
-    const triggerReindex = useAction((api.studio.content as any).triggerReindex);
+    const triggerReindex = useAction((api.studio.rag as any).triggerReindex);
 
     const router = useRouter();
 
