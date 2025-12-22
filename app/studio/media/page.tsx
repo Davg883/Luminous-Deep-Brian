@@ -3,10 +3,10 @@
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { SyncMediaButton } from "@/components/studio/SyncMediaButton";
-import { useState } from "react";
+import React, { useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import clsx from "clsx";
-import { Star, Check, Copy, Anchor, X, User, Eye, Shirt, Lightbulb, Hand, MapPin, Wrench, Palette, Upload, Loader2, Terminal, Plus, Search, Zap, Layers } from "lucide-react";
+import { Star, Check, Copy, Anchor, X, User, Eye, Shirt, Lightbulb, Hand, MapPin, Wrench, Palette, Upload, Loader2, Terminal, Plus, Search, Zap, Layers, Gauge, Activity } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 // IDENTITY ANCHOR SYSTEM: Character Lock for AI Generation
@@ -56,7 +56,7 @@ export default function MediaLibraryPage() {
     const [ingestLogs, setIngestLogs] = useState<string[]>([]);
     const [isDragging, setIsDragging] = useState(false);
 
-    // Multi-file Queue State
+    // Multi-file Queue State (Fibre-Optimized)
     interface ActiveUpload {
         id: string;
         file: File;
@@ -65,9 +65,24 @@ export default function MediaLibraryPage() {
         agent?: Agent;
         progress: number;
         log?: string;
+        bytesTransferred?: number;
     }
     const [uploadQueue, setUploadQueue] = useState<ActiveUpload[]>([]);
     const [isProcessingQueue, setIsProcessingQueue] = useState(false);
+
+    // Fibre Speed Metrics
+    const [globalBytesTransferred, setGlobalBytesTransferred] = useState(0);
+    const [totalBytesToUpload, setTotalBytesToUpload] = useState(0);
+    const [transferStartTime, setTransferStartTime] = useState<number | null>(null);
+    const [currentSpeedMBps, setCurrentSpeedMBps] = useState(0);
+    const terminalRef = React.useRef<HTMLDivElement>(null);
+
+    // Auto-scroll terminal on new logs
+    React.useEffect(() => {
+        if (terminalRef.current) {
+            terminalRef.current.scrollTop = 0; // Scroll to top (newest logs)
+        }
+    }, [ingestLogs]);
 
     if (media === undefined) return <div className="p-8 text-gray-500 animate-pulse">Loading Media Library...</div>;
 
@@ -119,10 +134,13 @@ export default function MediaLibraryPage() {
     };
 
     // ─── Smart Ingest Handlers ────────────────────────────────────
-    // ─── Smart Ingest Handlers (Concurrent Fibre Logic) ───────────
-    const processUpload = async (uploadId: string, file: File) => {
+    // ─── FIBRE-OPTIMIZED: 10-way Concurrent Processing ───────────
+    const CONCURRENCY_LIMIT = 10; // Max simultaneous uploads for fibre saturation
+
+    const processUpload = async (uploadId: string, file: File): Promise<void> => {
+        const fileSize = file.size;
         setUploadQueue(prev => prev.map(u => u.id === uploadId ? { ...u, status: "analyzing", progress: 10 } : u));
-        setIngestLogs(prev => [`> SCANNING: ${file.name.toUpperCase()}...`, ...prev].slice(0, 50));
+        setIngestLogs(prev => [`> [${new Date().toLocaleTimeString()}] SCANNING: ${file.name.toUpperCase()} (${(fileSize / 1024 / 1024).toFixed(2)} MB)`, ...prev].slice(0, 100));
 
         try {
             // Convert to Base64 (High-speed transmit)
@@ -140,32 +158,55 @@ export default function MediaLibraryPage() {
                 mimeType: file.type,
             });
 
+            // Track bytes transferred for speed calculation
+            setGlobalBytesTransferred(prev => prev + fileSize);
+
             if (result.success) {
                 setUploadQueue(prev => prev.map(u => u.id === uploadId ? {
                     ...u,
                     status: "complete",
                     agent: result.agent as Agent,
-                    progress: 100
+                    progress: 100,
+                    bytesTransferred: fileSize
                 } : u));
 
                 setIngestLogs(prev => [
-                    `> UPLOADING master 4K payload... [DONE]`,
-                    `> FILING: Slot ${String(result.slot).padStart(2, "0")} (${result.role}).`,
-                    `> IDENTITY MATCH: ${result.agent?.toUpperCase()} confirmed.`,
+                    `✓ [${new Date().toLocaleTimeString()}] ${result.agent?.toUpperCase()} LOCKED → Slot ${String(result.slot).padStart(2, "0")} (${result.role})`,
                     ...prev
-                ].slice(0, 50));
+                ].slice(0, 100));
             }
         } catch (error: any) {
             setUploadQueue(prev => prev.map(u => u.id === uploadId ? { ...u, status: "error", log: error.message } : u));
-            setIngestLogs(prev => [`✗ ERROR: ${file.name.toUpperCase()} failed (${error.message})`, ...prev].slice(0, 50));
+            setIngestLogs(prev => [`✗ [${new Date().toLocaleTimeString()}] ERROR: ${file.name.toUpperCase()} - ${error.message}`, ...prev].slice(0, 100));
+        }
+    };
+
+    // P-Limit style chunked concurrency for fibre saturation
+    const processWithConcurrencyLimit = async (uploads: ActiveUpload[], limit: number): Promise<void> => {
+        const queue = [...uploads];
+        const executing: Promise<void>[] = [];
+
+        while (queue.length > 0 || executing.length > 0) {
+            while (executing.length < limit && queue.length > 0) {
+                const upload = queue.shift()!;
+                const promise = processUpload(upload.id, upload.file).then(() => {
+                    executing.splice(executing.indexOf(promise), 1);
+                });
+                executing.push(promise);
+            }
+            if (executing.length > 0) {
+                await Promise.race(executing);
+            }
         }
     };
 
     const handleFiles = async (files: FileList | null) => {
         if (!files) return;
-        const newFiles = Array.from(files).filter(f => f.type.startsWith("image/")).slice(0, 14); // Max 14 at once
+        const newFiles = Array.from(files).filter(f => f.type.startsWith("image/")).slice(0, 50); // Allow up to 50 files
+        if (newFiles.length === 0) return;
 
-        const newUploads = newFiles.map(file => ({
+        const totalBytes = newFiles.reduce((sum, f) => sum + f.size, 0);
+        const newUploads: ActiveUpload[] = newFiles.map(file => ({
             id: Math.random().toString(36).substring(7),
             file,
             preview: URL.createObjectURL(file),
@@ -174,12 +215,40 @@ export default function MediaLibraryPage() {
         }));
 
         setUploadQueue(prev => [...newUploads, ...prev]);
+        setTotalBytesToUpload(prev => prev + totalBytes);
+        setTransferStartTime(Date.now());
+        setGlobalBytesTransferred(0);
         setIsProcessingQueue(true);
 
-        // TRIGGER ALL CONCURRENTLY - Fibre Optimization
-        await Promise.all(newUploads.map(upload => processUpload(upload.id, upload.file)));
+        setIngestLogs(prev => [
+            `> ═══════════════════════════════════════════════════`,
+            `> BATCH INGEST: ${newFiles.length} files (${(totalBytes / 1024 / 1024).toFixed(2)} MB total)`,
+            `> CONCURRENCY: ${CONCURRENCY_LIMIT}-way parallel streams active`,
+            `> ═══════════════════════════════════════════════════`,
+            ...prev
+        ].slice(0, 100));
 
+        // Speed calculation interval
+        const speedInterval = setInterval(() => {
+            if (transferStartTime) {
+                const elapsed = (Date.now() - transferStartTime) / 1000;
+                if (elapsed > 0) {
+                    setCurrentSpeedMBps(globalBytesTransferred / 1024 / 1024 / elapsed);
+                }
+            }
+        }, 250);
+
+        // FIBRE OPTIMIZED: Process with concurrency limit
+        await processWithConcurrencyLimit(newUploads, CONCURRENCY_LIMIT);
+
+        clearInterval(speedInterval);
         setIsProcessingQueue(false);
+        setIngestLogs(prev => [
+            `✓ ═══════════════════════════════════════════════════`,
+            `✓ BATCH COMPLETE: ${newFiles.length} files ingested`,
+            `✓ ═══════════════════════════════════════════════════`,
+            ...prev
+        ].slice(0, 100));
     };
 
     const handleFileDrop = (e: React.DragEvent) => {
@@ -280,6 +349,52 @@ export default function MediaLibraryPage() {
                 </div>
             )}
 
+            {/* FIBRE SPEED DASHBOARD - Global Progress & Transfer Speed */}
+            {isProcessingQueue && (
+                <div className="bg-gradient-to-r from-violet-900/50 to-fuchsia-900/50 rounded-2xl p-6 border border-violet-500/30 backdrop-blur-xl">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-violet-500 flex items-center justify-center animate-pulse">
+                                <Activity className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-white text-lg">Fibre Transfer Active</h3>
+                                <p className="text-xs text-violet-300">10-way concurrent streams optimized for high-speed connection</p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="flex items-center gap-2">
+                                <Gauge className="w-5 h-5 text-emerald-400" />
+                                <span className="text-3xl font-black text-emerald-400 tabular-nums">
+                                    {currentSpeedMBps.toFixed(1)}
+                                </span>
+                                <span className="text-sm text-emerald-300">MB/s</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Global Progress Bar */}
+                    <div className="relative h-4 bg-black/40 rounded-full overflow-hidden mb-3">
+                        <div
+                            className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 rounded-full transition-all duration-300"
+                            style={{
+                                width: `${totalBytesToUpload > 0 ? (globalBytesTransferred / totalBytesToUpload) * 100 : 0}%`
+                            }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent animate-pulse" />
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                        <span className="text-violet-300">
+                            {(globalBytesTransferred / 1024 / 1024).toFixed(2)} MB / {(totalBytesToUpload / 1024 / 1024).toFixed(2)} MB transferred
+                        </span>
+                        <span className="text-fuchsia-300 font-bold">
+                            {uploadQueue.filter(u => u.status === "complete").length} / {uploadQueue.filter(u => u.status !== "idle" || u.progress > 0).length} complete
+                        </span>
+                    </div>
+                </div>
+            )}
+
             {/* Agentic Ingest - Smart Dropzone */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div
@@ -299,6 +414,7 @@ export default function MediaLibraryPage() {
                         type="file"
                         className="hidden"
                         accept="image/*"
+                        multiple
                         onChange={handleFileSelect}
                     />
 
@@ -317,8 +433,8 @@ export default function MediaLibraryPage() {
                         <h3 className="text-xl font-bold text-slate-900 mb-2">Agentic Ingest</h3>
                         <p className="text-slate-500 text-sm max-w-xs mx-auto">
                             {isProcessingQueue
-                                ? "Gemini Vision is analyzing multi-stream data..."
-                                : "Drag and drop up to 14 character renders. High-speed fibre mode active."}
+                                ? "Gemini Vision analyzing streams... 10-way parallel active."
+                                : "Drop up to 50 images. Fibre-optimized 10-way concurrent upload."}
                         </p>
                     </div>
 
@@ -344,7 +460,7 @@ export default function MediaLibraryPage() {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-slate-700">
+                    <div ref={terminalRef} className="flex-1 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-slate-700">
                         {ingestLogs.length > 0 ? (
                             ingestLogs.map((log, i) => (
                                 <div

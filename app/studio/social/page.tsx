@@ -77,10 +77,12 @@ export default function SocialStudioPage() {
     const [generatedCopy, setGeneratedCopy] = useState<string | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"create" | "campaigns">("create");
+    const [anchorsUsed, setAnchorsUsed] = useState<number>(0);
 
     // ─── Queries ─────────────────────────────────────────────────
     const agents = useQuery(api.studio.agents.listAgents);
     const visualBibleUrls = useQuery(api.studio.mediaQueries.getVisualBibleAssets, {});
+    const anchorSummary = useQuery(api.studio.mediaQueries.getIdentityAnchorSummary);
 
     // ─── Actions ─────────────────────────────────────────────────
     const generateSocialPost = useAction(api.studio.ai.generateSocialPost);
@@ -136,6 +138,7 @@ export default function SocialStudioPage() {
                     aspectRatio.includes("1:1") ? "1x1" : "16x9",
             });
             setGeneratedImage(result.imageUrl);
+            setAnchorsUsed(result.anchorsUsed || 0);
         } catch (error: any) {
             console.error("Image generation error:", error);
             alert(`Failed to generate image: ${error.message || "Unknown error"}`);
@@ -411,9 +414,26 @@ export default function SocialStudioPage() {
                             {/* Platform Preview */}
                             {(generatedCopy || generatedImage) && (
                                 <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl p-6 border border-white/5">
-                                    <h2 className="text-lg font-semibold mb-4 text-slate-200">
-                                        👀 Platform Preview
-                                    </h2>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="text-lg font-semibold text-slate-200">
+                                            👀 Platform Preview
+                                        </h2>
+                                        {/* Brand Fidelity Indicator */}
+                                        {generatedImage && (
+                                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${anchorsUsed >= 10
+                                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                                    : anchorsUsed >= 5
+                                                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                                        : anchorsUsed > 0
+                                                            ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                                                            : "bg-slate-700 text-slate-400"
+                                                }`}>
+                                                <span>🧬</span>
+                                                <span>Character Lock: {anchorsUsed}/14 Anchors</span>
+                                                {anchorsUsed >= 10 && <span className="text-emerald-400">✓</span>}
+                                            </div>
+                                        )}
+                                    </div>
                                     <div
                                         className="rounded-xl p-4 border"
                                         style={{

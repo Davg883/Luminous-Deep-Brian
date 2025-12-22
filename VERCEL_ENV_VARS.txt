@@ -1,0 +1,65 @@
+================================================================================
+VERCEL ENVIRONMENT VARIABLES - COPY EACH KEY-VALUE PAIR TO VERCEL DASHBOARD
+================================================================================
+
+Go to: Vercel Dashboard → Your Project → Settings → Environment Variables
+Add each variable below (select All Environments: Production, Preview, Development)
+
+--------------------------------------------------------------------------------
+1. CONVEX (Required for build)
+--------------------------------------------------------------------------------
+CONVEX_DEPLOY_KEY
+→ Get from: https://dashboard.convex.dev → Your Project → Settings → Deploy Keys
+→ Value: prod:YOUR_DEPLOY_KEY_HERE
+
+NEXT_PUBLIC_CONVEX_URL
+→ Get from: Your .env.local file OR Convex Dashboard → Settings → URL
+→ Value: https://YOUR_PROJECT.convex.cloud
+
+--------------------------------------------------------------------------------
+2. CLERK (Required for authentication)
+--------------------------------------------------------------------------------
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+→ Get from: https://dashboard.clerk.com → Your App → API Keys
+→ Value: pk_live_XXXXXXXXXXXX (or pk_test_XXXX for development)
+
+CLERK_SECRET_KEY
+→ Get from: https://dashboard.clerk.com → Your App → API Keys
+→ Value: sk_live_XXXXXXXXXXXX (or sk_test_XXXX for development)
+
+--------------------------------------------------------------------------------
+3. CLOUDINARY (Required for media uploads)
+--------------------------------------------------------------------------------
+CLOUDINARY_CLOUD_NAME
+→ Get from: https://console.cloudinary.com → Dashboard
+→ Value: YOUR_CLOUD_NAME (e.g., dptqxjhb8)
+
+CLOUDINARY_API_KEY
+→ Get from: https://console.cloudinary.com → Settings → API Keys
+→ Value: YOUR_API_KEY (numeric)
+
+CLOUDINARY_API_SECRET
+→ Get from: https://console.cloudinary.com → Settings → API Keys
+→ Value: YOUR_API_SECRET
+
+--------------------------------------------------------------------------------
+4. GOOGLE AI (Required for image generation)
+--------------------------------------------------------------------------------
+GOOGLE_API_KEY
+→ Get from: https://aistudio.google.com/app/apikey
+→ Value: AIzaSy...
+
+================================================================================
+QUICK COPY FORMAT FOR VERCEL (fill in your values):
+================================================================================
+
+CONVEX_DEPLOY_KEY=prod:PASTE_YOUR_KEY
+NEXT_PUBLIC_CONVEX_URL=https://YOUR_PROJECT.convex.cloud
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_XXXX
+CLERK_SECRET_KEY=sk_live_XXXX
+CLOUDINARY_CLOUD_NAME=YOUR_CLOUD
+CLOUDINARY_API_KEY=YOUR_KEY
+CLOUDINARY_API_SECRET=YOUR_SECRET
+GOOGLE_API_KEY=AIzaSy...
+
+================================================================================

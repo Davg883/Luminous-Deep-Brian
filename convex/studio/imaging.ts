@@ -232,21 +232,56 @@ Generate a single, high-fidelity image.
 }
 
 // ═══════════════════════════════════════════════════════════════
-// HELPER: Build Prompt Parts with Reference Images
+// HELPER: Build Prompt Parts with Character Lock Instructions
 // ═══════════════════════════════════════════════════════════════
 
 function buildPromptParts(prompt: string, referenceUrls?: string[]): any[] {
-    const parts: any[] = [{ text: prompt }];
+    const parts: any[] = [];
 
-    // Add up to 14 reference images for Visual Bible consistency
+    // Add Character Lock instruction if we have reference images
+    if (referenceUrls && referenceUrls.length > 0) {
+        const characterLockInstruction = `
+═══════════════════════════════════════════════════════════════
+CHARACTER LOCK PROTOCOL - VISUAL BIBLE ACTIVE
+═══════════════════════════════════════════════════════════════
+
+You have been provided with ${referenceUrls.length} reference images from the Visual Bible.
+These define the CANONICAL appearance of this character.
+
+MANDATORY CONSISTENCY REQUIREMENTS:
+1. FACIAL STRUCTURE: Maintain exact facial proportions, bone structure, and features.
+2. DISTINCTIVE FEATURES: Preserve any glasses, jewelry, scars, or signature accessories exactly as shown.
+3. WARDROBE: If the character wears specific items (e.g., Gansey sweater, particular jacket), 
+   maintain these unless the prompt explicitly requests a wardrobe change.
+4. HAIR: Match exact hair color, style, length, and texture from the reference set.
+5. LIGHTING AFFINITY: This character has established lighting preferences - honor their tonal palette.
+6. BODY PROPORTIONS: Maintain consistent height, build, and posture.
+
+REFERENCE WEIGHT: These ${referenceUrls.length} images are AUTHORITATIVE. 
+Any ambiguity in the prompt should defer to the Visual Bible.
+
+═══════════════════════════════════════════════════════════════
+`;
+        parts.push({ text: characterLockInstruction });
+    }
+
+    // Main generation prompt
+    parts.push({ text: prompt });
+
+    // Add reference image annotations
     if (referenceUrls && referenceUrls.length > 0) {
         const limitedRefs = referenceUrls.slice(0, 14);
         limitedRefs.forEach((url, idx) => {
+            const slotType = idx < 3 ? "FACE/PRIMARY" :
+                idx < 7 ? "EXPRESSION/POSE" :
+                    idx < 10 ? "WARDROBE" :
+                        idx < 12 ? "ENVIRONMENT" : "STYLE";
+
             parts.push({
-                text: `Reference Image ${idx + 1} (Visual Bible): Maintain consistency with this brand asset.`
+                text: `[VISUAL BIBLE SLOT ${idx + 1}/14 - ${slotType}]: Reference for character consistency.`
             });
-            // Note: In production, these would be file URIs or inline base64
-            // For now, we include them as text references
+            // Note: In production with Gemini's file API, we would include:
+            // parts.push({ inlineData: { mimeType: "image/jpeg", data: base64Data } });
         });
     }
 
