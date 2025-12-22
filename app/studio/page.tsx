@@ -171,7 +171,7 @@ export default function StudioDashboard() {
                             <p className="text-xs mt-1">Use Magic Paste to generate telemetry</p>
                         </div>
                     ) : (
-                        recentRuns.map((run) => {
+                        recentRuns.map((run: Run) => {
                             const config = statusConfig[run.status];
                             const StatusIcon = config.icon;
                             const latestLog = run.logs[run.logs.length - 1];

@@ -1,6 +1,8 @@
 
+"use node";
+
 import { v } from "convex/values";
-import { action, internalQuery } from "../_generated/server";
+import { action } from "../_generated/server";
 import { requireStudioAccessAction } from "../auth/helpers";
 import { internal } from "../_generated/api";
 
@@ -378,31 +380,6 @@ export const generateAgentImage = action({
 
         // Call Nano Banana Pro core logic directly (shared handler)
         return await nanoBananaProCore(args.prompt, args.agentVoice, args.sceneSlug, undefined, "16:9");
-    }
-});
-
-// ═══════════════════════════════════════════════════════════════
-// VISUAL BIBLE: Query for reference images
-// ═══════════════════════════════════════════════════════════════
-
-export const getVisualBibleAssets = internalQuery({
-    args: {
-        agentVoice: v.optional(v.string()),
-        sceneSlug: v.optional(v.string()),
-        limit: v.optional(v.number())
-    },
-    handler: async (ctx, args) => {
-        let query = ctx.db.query("media");
-
-        // Filter by visual bible flag
-        const assets = await query.collect();
-
-        return assets
-            .filter((a: any) => a.isVisualBible === true)
-            .filter((a: any) => !args.agentVoice || a.tags?.includes(args.agentVoice))
-            .filter((a: any) => !args.sceneSlug || a.folder?.includes(args.sceneSlug))
-            .slice(0, args.limit || 14)
-            .map((a: any) => a.url);
     }
 });
 

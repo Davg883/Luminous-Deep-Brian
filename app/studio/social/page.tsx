@@ -130,7 +130,7 @@ export default function SocialStudioPage() {
             const aspectRatio = PLATFORM_CONFIG[selectedPlatform].aspectRatio;
             const result = await generateNanoBananaAsset({
                 prompt: `Create a ${selectedPlatform} post image for: ${campaignTitle}. Style: ${selectedAgentData.voice} voice, professional social media aesthetic.`,
-                agentVoice: selectedAgentData.voice,
+                agentVoice: selectedAgentData.voice as "cassie" | "eleanor" | "julian",
                 sceneSlug: campaignTitle.toLowerCase().replace(/\s+/g, "-"),
                 aspectRatio: aspectRatio.includes("16:9") ? "16x9" :
                     aspectRatio.includes("1:1") ? "1x1" : "16x9",

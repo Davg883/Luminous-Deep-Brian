@@ -120,7 +120,7 @@ export default function DomainPage() {
                 playbackSpeed={scene.playbackSpeed}
                 shouldLoop={scene.shouldLoop ?? true}
             >
-                {objects?.map((obj: any) => (
+                {objects?.map((obj: any, index: number) => (
                     <ObjectTrigger
                         key={obj._id}
                         x={obj.x}

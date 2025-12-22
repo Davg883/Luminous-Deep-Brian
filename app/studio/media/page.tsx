@@ -1,12 +1,12 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { SyncMediaButton } from "@/components/studio/SyncMediaButton";
 import { useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import clsx from "clsx";
-import { Star, Check, Copy, Anchor, X, User, Eye, Shirt, Lightbulb, Hand, MapPin, Wrench, Palette } from "lucide-react";
+import { Star, Check, Copy, Anchor, X, User, Eye, Shirt, Lightbulb, Hand, MapPin, Wrench, Palette, Upload, Loader2, Terminal, Plus, Search, Zap, Layers } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 // IDENTITY ANCHOR SYSTEM: Character Lock for AI Generation
@@ -50,6 +50,24 @@ export default function MediaLibraryPage() {
     const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
     const [selectedAgent, setSelectedAgent] = useState<Agent>("eleanor");
     const [isSettingAnchor, setIsSettingAnchor] = useState(false);
+
+    // Smart Ingest State (Optimized for High-Speed Fibre)
+    const smartAgenticUploadAction = useAction(api.studio.ingestion.smartAgenticUpload);
+    const [ingestLogs, setIngestLogs] = useState<string[]>([]);
+    const [isDragging, setIsDragging] = useState(false);
+
+    // Multi-file Queue State
+    interface ActiveUpload {
+        id: string;
+        file: File;
+        preview: string;
+        status: "idle" | "analyzing" | "uploading" | "syncing" | "complete" | "error";
+        agent?: Agent;
+        progress: number;
+        log?: string;
+    }
+    const [uploadQueue, setUploadQueue] = useState<ActiveUpload[]>([]);
+    const [isProcessingQueue, setIsProcessingQueue] = useState(false);
 
     if (media === undefined) return <div className="p-8 text-gray-500 animate-pulse">Loading Media Library...</div>;
 
@@ -98,6 +116,80 @@ export default function MediaLibraryPage() {
         } finally {
             setIsSettingAnchor(false);
         }
+    };
+
+    // ─── Smart Ingest Handlers ────────────────────────────────────
+    // ─── Smart Ingest Handlers (Concurrent Fibre Logic) ───────────
+    const processUpload = async (uploadId: string, file: File) => {
+        setUploadQueue(prev => prev.map(u => u.id === uploadId ? { ...u, status: "analyzing", progress: 10 } : u));
+        setIngestLogs(prev => [`> SCANNING: ${file.name.toUpperCase()}...`, ...prev].slice(0, 50));
+
+        try {
+            // Convert to Base64 (High-speed transmit)
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve) => {
+                reader.onload = () => resolve((reader.result as string).split(",")[1]);
+            });
+            reader.readAsDataURL(file);
+            const base64 = await base64Promise;
+
+            setUploadQueue(prev => prev.map(u => u.id === uploadId ? { ...u, status: "uploading", progress: 40 } : u));
+
+            const result = await smartAgenticUploadAction({
+                imageBase64: base64,
+                mimeType: file.type,
+            });
+
+            if (result.success) {
+                setUploadQueue(prev => prev.map(u => u.id === uploadId ? {
+                    ...u,
+                    status: "complete",
+                    agent: result.agent as Agent,
+                    progress: 100
+                } : u));
+
+                setIngestLogs(prev => [
+                    `> UPLOADING master 4K payload... [DONE]`,
+                    `> FILING: Slot ${String(result.slot).padStart(2, "0")} (${result.role}).`,
+                    `> IDENTITY MATCH: ${result.agent?.toUpperCase()} confirmed.`,
+                    ...prev
+                ].slice(0, 50));
+            }
+        } catch (error: any) {
+            setUploadQueue(prev => prev.map(u => u.id === uploadId ? { ...u, status: "error", log: error.message } : u));
+            setIngestLogs(prev => [`✗ ERROR: ${file.name.toUpperCase()} failed (${error.message})`, ...prev].slice(0, 50));
+        }
+    };
+
+    const handleFiles = async (files: FileList | null) => {
+        if (!files) return;
+        const newFiles = Array.from(files).filter(f => f.type.startsWith("image/")).slice(0, 14); // Max 14 at once
+
+        const newUploads = newFiles.map(file => ({
+            id: Math.random().toString(36).substring(7),
+            file,
+            preview: URL.createObjectURL(file),
+            status: "idle" as const,
+            progress: 0,
+        }));
+
+        setUploadQueue(prev => [...newUploads, ...prev]);
+        setIsProcessingQueue(true);
+
+        // TRIGGER ALL CONCURRENTLY - Fibre Optimization
+        await Promise.all(newUploads.map(upload => processUpload(upload.id, upload.file)));
+
+        setIsProcessingQueue(false);
+    };
+
+    const handleFileDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        handleFiles(e.dataTransfer.files);
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        handleFiles(e.target.files);
     };
 
     return (
@@ -184,6 +276,186 @@ export default function MediaLibraryPage() {
                                 <strong>Auto-Sync:</strong> Upload files named <code className="bg-black/30 px-1 rounded">LD_BIBLE_JULIAN_01</code> to Cloudinary, then click Sync. The system will auto-assign Identity Anchors and extract AI tags.
                             </span>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Agentic Ingest - Smart Dropzone */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleFileDrop}
+                    className={clsx(
+                        "relative border-2 border-dashed rounded-2xl p-8 transition-all duration-300 flex flex-col items-center justify-center min-h-[300px] cursor-pointer group",
+                        isDragging
+                            ? "border-violet-500 bg-violet-500/5 ring-4 ring-violet-500/20"
+                            : "border-slate-300 hover:border-violet-400 hover:bg-slate-50"
+                    )}
+                    onClick={() => document.getElementById("file-upload")?.click()}
+                >
+                    <input
+                        id="file-upload"
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                    />
+
+                    <div className={clsx(
+                        "w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-all duration-500",
+                        isProcessingQueue ? "bg-violet-500 animate-pulse" : "bg-slate-100 group-hover:bg-violet-100"
+                    )}>
+                        {isProcessingQueue ? (
+                            <Loader2 className="w-8 h-8 text-white animate-spin" />
+                        ) : (
+                            <Upload className="w-8 h-8 text-slate-400 group-hover:text-violet-500" />
+                        )}
+                    </div>
+
+                    <div className="text-center">
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">Agentic Ingest</h3>
+                        <p className="text-slate-500 text-sm max-w-xs mx-auto">
+                            {isProcessingQueue
+                                ? "Gemini Vision is analyzing multi-stream data..."
+                                : "Drag and drop up to 14 character renders. High-speed fibre mode active."}
+                        </p>
+                    </div>
+
+                    {/* Active Overlay */}
+                    {isDragging && (
+                        <div className="absolute inset-0 bg-violet-500/10 flex items-center justify-center rounded-2xl">
+                            <div className="bg-white px-6 py-3 rounded-full shadow-xl font-bold text-violet-600 flex items-center gap-2">
+                                <Plus /> Drop to Identify Character
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Terminal Logs */}
+                <div className="bg-slate-900 rounded-2xl border border-white/10 p-6 font-mono text-sm overflow-hidden flex flex-col min-h-[300px]">
+                    <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
+                        <Terminal className="w-4 h-4 text-emerald-400" />
+                        <span className="text-emerald-400 font-bold uppercase tracking-wider text-xs">Ingest Terminal</span>
+                        <div className="flex gap-1.5 ml-auto">
+                            <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-slate-700">
+                        {ingestLogs.length > 0 ? (
+                            ingestLogs.map((log, i) => (
+                                <div
+                                    key={i}
+                                    className={clsx(
+                                        "transition-all duration-300 text-left",
+                                        log.startsWith("> SYSTEM") ? "text-blue-400" :
+                                            log.startsWith("> JULIAN") ? "text-blue-300" :
+                                                log.startsWith("> ELEANOR") ? "text-violet-300" :
+                                                    log.startsWith("> CASSIE") ? "text-amber-300" :
+                                                        log.includes("✓") ? "text-emerald-400 font-bold" :
+                                                            log.includes("✗") ? "text-red-400 font-bold" : "text-slate-300"
+                                    )}
+                                >
+                                    {log}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-slate-600 italic">Waiting for input stream...</div>
+                        )}
+                        {isProcessingQueue && (
+                            <div className="text-emerald-400 animate-pulse text-left">_</div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Concurrent Upload Queue - The Radar */}
+            {uploadQueue.length > 0 && (
+                <div className="bg-white border rounded-2xl p-6 shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <Layers className="w-5 h-5 text-violet-500" />
+                            <h3 className="font-bold text-slate-800">Active Ingest Queue</h3>
+                            <span className="bg-violet-100 text-violet-600 text-xs px-2 py-0.5 rounded-full font-bold">
+                                {uploadQueue.filter(u => u.status === "complete").length} / {uploadQueue.length} Ready
+                            </span>
+                        </div>
+                        {uploadQueue.every(u => u.status === "complete" || u.status === "error") && (
+                            <button
+                                onClick={() => setUploadQueue([])}
+                                className="text-xs text-slate-400 hover:text-slate-600 underline"
+                            >
+                                Clear Ingest Queue
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                        {uploadQueue.map(upload => (
+                            <div key={upload.id} className="relative group">
+                                <div className={clsx(
+                                    "aspect-square rounded-xl overflow-hidden border-2 transition-all duration-500 relative",
+                                    upload.status === "complete"
+                                        ? `shadow-lg ${AGENT_COLORS[upload.agent!].border}`
+                                        : upload.status === "error" ? "border-red-400" : "border-slate-200"
+                                )}>
+                                    <img
+                                        src={upload.preview}
+                                        className={clsx(
+                                            "w-full h-full object-cover transition-all duration-700",
+                                            upload.status === "analyzing" || upload.status === "uploading" ? "scale-110 blur-[1px]" : "scale-100"
+                                        )}
+                                        alt="preview"
+                                    />
+
+                                    {/* The Radar: Scanning Animation */}
+                                    {(upload.status === "analyzing" || upload.status === "uploading") && (
+                                        <div className="absolute inset-0 bg-violet-500/10 pointer-events-none">
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-violet-400/80 shadow-[0_0_15px_rgba(167,139,250,0.8)] animate-scan" />
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <Zap className="w-6 h-6 text-white animate-pulse" />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Success/Identity Overlay */}
+                                    {upload.status === "complete" && (
+                                        <div className={clsx(
+                                            "absolute inset-0 flex flex-col items-center justify-center p-2 text-center",
+                                            AGENT_COLORS[upload.agent!].bg,
+                                            "backdrop-blur-[2px]"
+                                        )}>
+                                            <div className="bg-white rounded-full p-1.5 mb-1 shadow-md">
+                                                <Check className={clsx("w-3 h-3", AGENT_COLORS[upload.agent!].text.replace("text-", "text-").replace("-300", "-600"))} />
+                                            </div>
+                                            <span className={clsx("text-[10px] font-black uppercase tracking-tighter", AGENT_COLORS[upload.agent!].text)}>
+                                                {upload.agent}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Error Overlay */}
+                                    {upload.status === "error" && (
+                                        <div className="absolute inset-0 bg-red-500/80 backdrop-blur-md flex items-center justify-center p-2 text-center">
+                                            <X className="w-6 h-6 text-white" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Individual Progress Bar */}
+                                {upload.status !== "complete" && upload.status !== "error" && (
+                                    <div className="mt-2 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-violet-500 transition-all duration-300"
+                                            style={{ width: `${upload.progress}%` }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

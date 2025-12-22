@@ -31,7 +31,7 @@ export default function StudioLayout({
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1">
-                    {navItems.map((item) => (
+                    {navItems.map((item: any) => (
                         <Link
                             key={item.href}
                             href={item.href}
