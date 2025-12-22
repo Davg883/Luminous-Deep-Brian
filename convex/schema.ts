@@ -98,6 +98,8 @@ export default defineSchema({
         )),
         // Vector Embedding (Gemini text-embedding-004: 768 dimensions)
         embedding: v.optional(v.array(v.float64())),
+        // Multimodal: AI-suggested image prompt
+        imagePrompt: v.optional(v.string()),
     }).vectorIndex("by_embedding", {
         dimensions: 768,
         vectorField: "embedding",

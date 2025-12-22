@@ -66,7 +66,9 @@ export default function ContentFactoryPage() {
 
     // Process State
     const generateContent = useAction(api.studio.ai.generateContent);
+    const generateAgentImage = useAction((api.studio.imaging as any).generateAgentImage);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [publishingIds, setPublishingIds] = useState<Set<string>>(new Set());
 
     const handleAIProcess = async () => {
@@ -241,7 +243,7 @@ export default function ContentFactoryPage() {
             setSelectedSceneId("");
 
             alert(`Draft Saved Successfully! ${successCount} item(s) moved to Review.`);
-            setActiveTab("Review");
+            setActiveTab("Library");
 
         } catch (e: any) {
             console.error("IMPORT ERROR:", e);
@@ -571,8 +573,8 @@ export default function ContentFactoryPage() {
                 </div>
             )}
 
-            {/* TAB: REVIEW */}
-            {activeTab === "Review" && (
+            {/* TAB: REVIEW (Legacy - for content pack drafts) */}
+            {(activeTab as string) === "Review" && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="space-y-4 overflow-y-auto max-h-[80vh] pr-2 custom-scrollbar">
                         <h2 className="text-lg font-bold flex items-center gap-2">
@@ -695,7 +697,78 @@ export default function ContentFactoryPage() {
                     <div className="flex flex-col gap-4">
                         <h2 className="text-lg font-bold">Import Preview</h2>
                         {previewData ? (
-                            <ContentPreview pack={previewData} sceneTitle={(scenes || []).find((s: any) => s._id === selectedSceneId)?.title} sceneBackgroundUrl={(scenes || []).find((s: any) => s._id === selectedSceneId)?.backgroundMediaUrl} />
+                            <>
+                                <ContentPreview pack={previewData} sceneTitle={(scenes || []).find((s: any) => s._id === selectedSceneId)?.title} sceneBackgroundUrl={(scenes || []).find((s: any) => s._id === selectedSceneId)?.backgroundMediaUrl} />
+
+                                {/* Image Generation UI (The Darkroom) */}
+                                {previewData.image_prompt && (
+                                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-xl border border-purple-200 shadow-sm">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="text-sm font-bold text-purple-800">📸 AI Suggested Image</h3>
+                                            <span className="text-[10px] uppercase tracking-wider text-purple-500">The Darkroom</span>
+                                        </div>
+                                        <p className="text-sm text-gray-700 italic mb-4 leading-relaxed">
+                                            "{previewData.image_prompt}"
+                                        </p>
+                                        <button
+                                            onClick={async () => {
+                                                if (!previewData.image_prompt) return;
+                                                setIsGeneratingImage(true);
+                                                try {
+                                                    const sceneSlugForVoice = previewData.scene_slug || "home";
+                                                    const voice = previewData.voice || (sceneSlugForVoice === "workshop" ? "cassie" : sceneSlugForVoice === "study" ? "eleanor" : "julian");
+                                                    const sceneSlug = previewData.scene_slug || "home";
+                                                    const imageUrl = await generateAgentImage({
+                                                        prompt: previewData.image_prompt,
+                                                        agentVoice: voice as any,
+                                                        sceneSlug
+                                                    });
+                                                    // Append the image markdown to the content
+                                                    const imageMarkdown = `\n\n![${previewData.title}](${imageUrl})`;
+                                                    setPreviewData({
+                                                        ...previewData,
+                                                        content: (previewData.content || "") + imageMarkdown,
+                                                        generatedImageUrl: imageUrl
+                                                    });
+                                                    alert(`✅ Image generated and added to story!`);
+                                                } catch (e: any) {
+                                                    console.error("Image generation error:", e);
+                                                    alert(`❌ Image generation failed: ${e.message || e}`);
+                                                } finally {
+                                                    setIsGeneratingImage(false);
+                                                }
+                                            }}
+                                            disabled={isGeneratingImage}
+                                            className={clsx(
+                                                "w-full px-4 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2",
+                                                isGeneratingImage
+                                                    ? "bg-purple-300 text-purple-700 cursor-wait"
+                                                    : "bg-purple-600 text-white hover:bg-purple-700 shadow-md hover:shadow-lg"
+                                            )}
+                                        >
+                                            {isGeneratingImage ? (
+                                                <>
+                                                    <span className="animate-spin">⏳</span>
+                                                    Developing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    📸 Generate Image
+                                                </>
+                                            )}
+                                        </button>
+                                        {previewData.generatedImageUrl && (
+                                            <div className="mt-4">
+                                                <img
+                                                    src={previewData.generatedImageUrl}
+                                                    alt={previewData.title}
+                                                    className="w-full rounded-lg shadow-md"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <div className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-center p-12">
                                 <p>Write or paste your story to visualize it.</p>
