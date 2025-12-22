@@ -96,6 +96,12 @@ export default defineSchema({
             v.literal("autumn"),
             v.literal("winter")
         )),
+        // Vector Embedding (Gemini text-embedding-004: 768 dimensions)
+        embedding: v.optional(v.array(v.float64())),
+    }).vectorIndex("by_embedding", {
+        dimensions: 768,
+        vectorField: "embedding",
+        filterFields: ["voice", "status"],
     }),
 
     // ═══════════════════════════════════════════════════════════════

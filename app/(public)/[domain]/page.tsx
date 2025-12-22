@@ -4,12 +4,15 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Terminal } from "lucide-react";
 import SceneStage from "@/components/narrative/SceneStage";
 import ObjectTrigger from "@/components/narrative/ObjectTrigger";
 import RevealCard from "@/components/narrative/RevealCard";
 import Atmosphere from "@/components/layout/Atmosphere";
 import SanctuaryCompass from "@/components/layout/SanctuaryCompass";
 import EdgeNav from "@/components/narrative/EdgeNav";
+import { SanctuaryTerminal } from "@/components/narrative/SanctuaryTerminal";
 import type { Domain } from "@/lib/types";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -57,6 +60,7 @@ export default function DomainPage() {
 
     // Interactive State
     const [activeRevealId, setActiveRevealId] = useState<Id<"reveals"> | null>(null);
+    const [isTerminalOpen, setIsTerminalOpen] = useState(false);
 
     // Helper to fetch the active reveal details
     const activeReveal = useQuery(api.public.scenes.getReveal,
@@ -143,6 +147,53 @@ export default function DomainPage() {
                 mediaUrl={activeReveal?.mediaUrl}
                 domain={validatedDomain}
             />
+
+            {/* Terminal Hotspot (Study, Boathouse, Workshop) */}
+            {["study", "boathouse", "workshop"].includes(validatedDomain) && (
+                <>
+                    <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setIsTerminalOpen(true)}
+                        className="fixed bottom-8 left-8 z-30 p-4 bg-black/40 text-white/80 rounded-full backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/30 transition-all shadow-lg group"
+                    >
+                        <div className="absolute inset-0 rounded-full bg-white/5 animate-ping opacity-0 group-hover:opacity-100" />
+                        <Terminal className="w-5 h-5" />
+                    </motion.button>
+
+                    <AnimatePresence>
+                        {isTerminalOpen && (
+                            <>
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={() => setIsTerminalOpen(false)}
+                                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                                />
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                    className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+                                >
+                                    <div className="w-full max-w-2xl pointer-events-auto">
+                                        <SanctuaryTerminal />
+                                        <button
+                                            onClick={() => setIsTerminalOpen(false)}
+                                            className="mt-4 mx-auto block text-zinc-400 hover:text-white text-xs uppercase tracking-widest transition-colors"
+                                        >
+                                            Disconnect
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </>
+            )}
         </>
     );
 }

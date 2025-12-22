@@ -1,41 +1,36 @@
+// ... (imports)
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "../_generated/server";
+import { mutation, query, internalMutation, internalQuery, internalAction } from "../_generated/server";
+import { api, internal, components } from "../_generated/api";
 import { requireStudioAccess } from "../auth/helpers";
 
 export const listPacks = query({
     args: {},
     handler: async (ctx) => {
         await requireStudioAccess(ctx);
-        return await ctx.db.query("contentPacks").collect();
+        const packs = await ctx.db.query("contentPacks").collect();
+        // Sort by newest first
+        return packs.sort((a, b) => b._creationTime - a._creationTime);
     },
 });
 
-// ═══════════════════════════════════════════════════════════════
-// MASTER INVENTORY: All Reveals with Linked/Unlinked Status
-// ═══════════════════════════════════════════════════════════════
+// ... listAllReveals ...
 export const listAllReveals = query({
     args: {},
     handler: async (ctx) => {
         await requireStudioAccess(ctx);
 
-        // Get all reveals
         const reveals = await ctx.db.query("reveals").collect();
-
-        // Get all objects to check linking
         const objects = await ctx.db.query("objects").collect();
 
-        // Create a set of reveal IDs that are linked to objects
         const linkedRevealIds = new Set(
             objects
                 .filter(obj => obj.revealId)
                 .map(obj => obj.revealId?.toString())
         );
 
-        // Enrich reveals with linking status and scene info
         const enrichedReveals = await Promise.all(reveals.map(async (reveal) => {
             const isLinked = linkedRevealIds.has(reveal._id.toString());
-
-            // Find the object if linked
             const linkedObject = objects.find(obj => obj.revealId?.toString() === reveal._id.toString());
             let sceneName = null;
 
@@ -61,30 +56,75 @@ export const listAllReveals = query({
             };
         }));
 
-        return enrichedReveals;
+        // Sort by publishedAt (if available) or creationTime, DESC
+        return enrichedReveals.sort((a, b) => {
+            const timeA = a.publishedAt || a._creationTime;
+            const timeB = b.publishedAt || b._creationTime;
+            return timeB - timeA;
+        });
     },
 });
 
-// ═══════════════════════════════════════════════════════════════
-// UNLINKED REVEALS: For "Add Object" dropdown
-// ═══════════════════════════════════════════════════════════════
 export const listUnlinkedReveals = query({
     args: {},
     handler: async (ctx) => {
         await requireStudioAccess(ctx);
-
         const reveals = await ctx.db.query("reveals").collect();
         const objects = await ctx.db.query("objects").collect();
-
-        const linkedRevealIds = new Set(
-            objects
-                .filter(obj => obj.revealId)
-                .map(obj => obj.revealId?.toString())
-        );
-
-        // Return only unlinked reveals
-        return reveals.filter(reveal => !linkedRevealIds.has(reveal._id.toString()));
+        const linkedRevealIds = new Set(objects.map(obj => obj.revealId?.toString()).filter(Boolean));
+        // Sort newest first
+        return reveals
+            .filter(reveal => !linkedRevealIds.has(reveal._id.toString()))
+            .sort((a, b) => b._creationTime - a._creationTime);
     },
+});
+
+// ... importPack ...
+// ... updatePack ...
+// ... publishPack ...
+// ... deletePack ...
+// ... resolveMedia ...
+// ... deleteRevealInternal ...
+// ... deleteReveal ...
+
+export const reassignRevealSpace = mutation({
+    args: {
+        revealId: v.id("reveals"),
+        newSceneSlug: v.string()
+    },
+    handler: async (ctx, args) => {
+        await requireStudioAccess(ctx);
+
+        // 1. Find the new scene
+        const newScene = await ctx.db
+            .query("scenes")
+            .withIndex("by_slug", (q) => q.eq("slug", args.newSceneSlug))
+            .first();
+
+        if (!newScene) {
+            throw new Error(`Scene with slug '${args.newSceneSlug}' not found.`);
+        }
+
+        // 2. Update the Reveal record
+        await ctx.db.patch(args.revealId, {
+            spaceId: newScene._id
+        });
+
+        // 3. Update any linked Object(s)
+        const linkedObjects = await ctx.db
+            .query("objects")
+            .withIndex("by_scene") // Just scanning is fine if index isn't perfect for this, but we have strict checks
+            .filter(q => q.eq(q.field("revealId"), args.revealId))
+            .collect();
+
+        for (const obj of linkedObjects) {
+            await ctx.db.patch(obj._id, {
+                sceneId: newScene._id
+            });
+        }
+
+        return { success: true, newSceneId: newScene._id, movedObjects: linkedObjects.length };
+    }
 });
 
 export const importPack = mutation({
