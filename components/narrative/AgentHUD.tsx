@@ -83,29 +83,60 @@ export default function AgentHUD({
     // ═══════════════════════════════════════════════════════════════
     // LIVE RUN SUBSCRIPTION - Real AI telemetry
     // ═══════════════════════════════════════════════════════════════
-    const latestRun = useQuery((api as any).studio.runs.getLatestRun, {});
+    // ═══════════════════════════════════════════════════════════════
+    // LIVE RUN SUBSCRIPTION - Real AI telemetry
+    // ═══════════════════════════════════════════════════════════════
+    // Fetch last 5 runs to show history, not just current
+    const recentRuns = useQuery((api as any).studio.runs.getRecentRuns, { limit: 5 });
     const activeRun = useQuery((api as any).studio.runs.getActiveRun, {});
-    const isAIActive = activeRun?.status === "running";
+
+    // Visual Linger State: Keep UI "active" for 5s after actual completion
+    const [visualIsActive, setVisualIsActive] = useState(false);
+    const dbIsActive = activeRun?.status === "running";
+
+    useEffect(() => {
+        if (dbIsActive) {
+            setVisualIsActive(true);
+        } else {
+            const timer = setTimeout(() => setVisualIsActive(false), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [dbIsActive]);
+
+    const isAIActive = visualIsActive;
 
     // Process live run logs into terminal lines
     useEffect(() => {
-        if (latestRun?.logs) {
-            const runLines = latestRun.logs.map((log: RunLog) => {
-                const prefix = log.level === "error" ? "✖ " :
-                    log.level === "warn" ? "⚠ " :
-                        log.level === "debug" ? "  " : "> ";
-                return `${prefix}${log.message}`;
+        if (recentRuns) {
+            // Sort runs oldest to newest (history feed)
+            const sortedRuns = [...recentRuns].reverse();
+
+            const allLogs = sortedRuns.flatMap(run => {
+                // Formatting for Run Header
+                const timeString = new Date(run.startedAt).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const header = `> [${timeString}] EXEC: ${run.workflowName || "PROCESS_THREAD"}`;
+
+                const logLines = run.logs.map((log: RunLog) => {
+                    const prefix = log.level === "error" ? "✖ " :
+                        log.level === "warn" ? "⚠ " :
+                            log.level === "debug" ? "  " : "> ";
+                    return `${prefix}${log.message}`;
+                });
+
+                return [header, ...logLines, ""]; // Add empty line buffer
             });
 
-            // Boot sequence + live logs
+            // Boot sequence
             const bootLines = [
                 "> LUMINOUS DEEP CONTROL v0.1.0",
                 "> Initializing agent subsystems...",
+                "> MEMORY BUFFER: LAST 5 CYCLES",
+                ""
             ];
 
-            setTerminalLines([...bootLines, ...runLines]);
+            setTerminalLines([...bootLines, ...allLogs]);
         }
-    }, [latestRun]);
+    }, [recentRuns]);
 
     // Auto-scroll terminal to bottom
     useEffect(() => {
@@ -114,32 +145,17 @@ export default function AgentHUD({
         }
     }, [terminalLines]);
 
-    // Boot sequence fallback (if no runs yet)
+    // Boot sequence simulated fallback (only if no data connection yet)
     useEffect(() => {
-        if (!latestRun) {
+        if (recentRuns === undefined) {
             const bootSequence = [
                 "> LUMINOUS DEEP CONTROL v0.1.0",
-                "> Initializing agent subsystems...",
-                "> JULIAN [ONLINE] :: Boathouse",
-                "> ELEANOR [ONLINE] :: Study",
-                "> CASSIE [ONLINE] :: Workshop",
-                "> All systems nominal.",
-                "> Awaiting instructions...",
+                "> Connecting to neural lace...",
+                "> ...",
             ];
-
-            let lineIndex = 0;
-            const interval = setInterval(() => {
-                if (lineIndex < bootSequence.length) {
-                    setTerminalLines(prev => [...prev, bootSequence[lineIndex]]);
-                    lineIndex++;
-                } else {
-                    clearInterval(interval);
-                }
-            }, 400);
-
-            return () => clearInterval(interval);
+            setTerminalLines(bootSequence);
         }
-    }, [latestRun]);
+    }, [recentRuns]);
 
     // Clock updater - only starts after mount to avoid hydration mismatch
     useEffect(() => {
