@@ -54,75 +54,62 @@ export default function ContentFactoryPage() {
     const handleAIProcess = async () => {
         if (!jsonInput) return;
         setIsProcessingAI(true);
+
         try {
-            console.log("Sending prompt to AI:", jsonInput);
+            console.log("=== MAGIC PASTE START ===");
+            console.log("Input:", jsonInput.substring(0, 100) + "...");
 
             const refinedJson = await generateContent({
                 prompt: jsonInput,
-                voice: selectedSceneId === "scenes:boathouse" ? "julian" : selectedSceneId === "scenes:study" ? "eleanor" : "cassie" // Naive voice selection for now
+                voice: selectedSceneId === "scenes:boathouse" ? "julian" : selectedSceneId === "scenes:study" ? "eleanor" : "cassie"
             });
-            console.log("AI Response Raw:", refinedJson);
+
+            console.log("SUCCESS: Received from AI:", refinedJson.substring(0, 200) + "...");
 
             // Clean up markdown block
             let cleanJson = refinedJson.replace(/```json/g, '').replace(/```/g, '').trim();
 
-            console.log("Setting text to:", cleanJson.substring(0, 20) + "...");
-
-            // 1. UPDATE EDITOR IMMEDIATELY (Safety Net)
-            setJsonInput(cleanJson);
-
-            // 2. ATTEMPT PARSE & REPAIR
+            // ATTEMPT PARSE & REPAIR
             let parsedData;
             try {
                 parsedData = JSON.parse(cleanJson);
             } catch (e) {
                 console.warn("JSON Parse Failed. Attempting repair...");
-                try {
-                    // Try repairing common truncation issues
-                    if (!cleanJson.endsWith("}")) {
-                        let repairAttempt = cleanJson;
-                        if (cleanJson.endsWith("]")) {
-                            repairAttempt += "}";
-                        } else if (cleanJson.endsWith('"')) {
-                            repairAttempt += "}";
-                        } else {
-                            repairAttempt += "}";
-                        }
-
-                        // Parse repaired version
+                // Try repairing common truncation issues
+                if (!cleanJson.endsWith("}") && !cleanJson.endsWith("]")) {
+                    let repairAttempt = cleanJson + "}";
+                    try {
                         parsedData = JSON.parse(repairAttempt);
-
-                        // If successful, update editor with repaired version
                         cleanJson = repairAttempt;
-                        setJsonInput(cleanJson);
-                        console.log("Auto-repair successful:", cleanJson);
-                    }
-                } catch (e2) {
-                    console.error("Auto-repair failed. User must fix manually.", e2);
-                    return; // Stop here, but text is already in the box
-                }
-            }
-
-            // 3. AUTO-SWITCH SCENE (If we have valid data)
-            if (parsedData) {
-                try {
-                    const data = Array.isArray(parsedData) ? parsedData[0] : parsedData;
-                    const slug = data.scene_slug || data.sceneSlug || data.domain;
-
-                    if (slug && scenes) {
-                        const matchedScene = (scenes as any[]).find(s => s.slug === slug || s.domain.toLowerCase() === slug.toLowerCase());
-                        if (matchedScene && matchedScene._id !== selectedSceneId) {
-                            console.log("Auto-switching scene context to:", matchedScene.slug);
-                            setSelectedSceneId(matchedScene._id);
+                        console.log("Auto-repair successful");
+                    } catch (e2) {
+                        // Try adding ]} for arrays
+                        repairAttempt = cleanJson + "]}";
+                        try {
+                            parsedData = JSON.parse(repairAttempt);
+                            cleanJson = repairAttempt;
+                            console.log("Auto-repair successful (array)");
+                        } catch (e3) {
+                            console.error("Auto-repair failed. User must fix manually.");
                         }
                     }
-                } catch (err) {
-                    console.warn("Scene Switch logic skipped", err);
                 }
             }
 
-            // 4. FORCE VALIDATION (Updates Preview)
-            validateJson(cleanJson);
+            // === STATE LOCK: ONLY DO THESE 3 THINGS ===
+            // 1. Set the text
+            console.log("Setting jsonInput to cleaned JSON");
+            setJsonInput(cleanJson);
+
+            // 2. Validate and set preview (directly, using the string we have)
+            if (parsedData) {
+                console.log("Calling validateJson with parsed data");
+                const validationResult = validateJson(cleanJson);
+                console.log("Validation result:", validationResult);
+            }
+
+            // 3. That's it. No redirects, no room switches.
+            console.log("=== MAGIC PASTE COMPLETE ===");
 
         } catch (e: any) {
             console.error("AI PROCESS ERROR:", e);
@@ -132,10 +119,13 @@ export default function ContentFactoryPage() {
         }
     };
 
-    const validateJson = (input: string) => {
+    const validateJson = (input: string): { success: boolean, data: any | null } => {
+        console.log("VALIDATE: Attempting to parse input of length:", input.length);
+
         try {
             const raw = JSON.parse(input);
             const data = Array.isArray(raw) ? raw[0] : raw; // Handle array input for preview validation
+            console.log("VALIDATE: Parsed raw data:", data);
 
             const errors: string[] = [];
             const warnings: string[] = [];
@@ -143,6 +133,8 @@ export default function ContentFactoryPage() {
             // The "Everything Mapper" normalization
             // "Reach Inside" nested objects (AI sometimes returns { reveal: { content: ... } })
             const nested = data.reveal || data.item || data.result || {};
+            console.log("VALIDATE: Checking nested object:", nested);
+
             const normalized = {
                 hotspotId: data.hotspot_id || data.hotspotId || nested.hotspot_id || (data.title || nested.title ? (data.title || nested.title).toLowerCase().replace(/[^a-z0-9]+/g, '_') : ""),
                 title: data.title || nested.title || "Untitled",
@@ -157,24 +149,38 @@ export default function ContentFactoryPage() {
                 voice: data.voice || nested.voice || undefined
             };
 
+            console.log("VALIDATE: Normalized result:", normalized);
+
             // Validation Logic
             if (!normalized.hotspotId) errors.push("Missing hotspot_id (could not auto-generate)");
-            // if (!normalized.sceneSlug) warnings.push("Missing scene_slug (using default)"); // defaulted above
-            if (!data.title || data.title === "Enter Title" || data.title === "Untitled") warnings.push("Title is placeholder (will be auto-named 'A New Discovery' on save)");
-            if (!normalized.bodyCopy) errors.push("Missing content");
+            if (!normalized.title || normalized.title === "Enter Title" || normalized.title === "Untitled") {
+                warnings.push("Title is placeholder (will be auto-named 'A New Discovery' on save)");
+            }
+            if (!normalized.bodyCopy) {
+                console.log("VALIDATE: bodyCopy is empty, marking as error");
+                errors.push("Missing content");
+            }
 
             setValidationResult({ errors, warnings });
+            console.log("VALIDATE: Errors:", errors, "Warnings:", warnings);
 
             if (errors.length === 0) {
-                setPreviewData({
+                const mergedData = {
                     ...data, // Keep original raw props too just in case
                     ...normalized // Override with normalized
-                });
+                };
+                console.log("VALIDATE: SUCCESS - Setting preview data");
+                setPreviewData(mergedData);
+                return { success: true, data: mergedData };
             } else {
+                console.log("VALIDATE: FAILED - Clearing preview data");
                 setPreviewData(null);
+                return { success: false, data: null };
             }
         } catch (e) {
-            // Silent fail for in-progress typing
+            console.log("VALIDATE: JSON parse error:", e);
+            // Keep current state on parse error (user might still be typing)
+            return { success: false, data: null };
         }
     };
 
