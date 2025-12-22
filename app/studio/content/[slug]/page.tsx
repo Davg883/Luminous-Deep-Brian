@@ -376,6 +376,37 @@ export default function SceneEditor() {
                         </div>
                     </div>
 
+                    {/* Cinematic Behavior Toggle */}
+                    <div className="p-4 border-t border-gray-200 bg-sky-50">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">Cinematic Behavior</label>
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                            <div className="relative">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={scene.shouldLoop ?? true}
+                                    onChange={async (e) => {
+                                        await updateScene({
+                                            id: scene._id,
+                                            title: scene.title,
+                                            domain: scene.domain,
+                                            backgroundMediaUrl: scene.backgroundMediaUrl,
+                                            shouldLoop: e.target.checked,
+                                        });
+                                    }}
+                                />
+                                <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-sky-500 transition-colors"></div>
+                                <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                            </div>
+                            <span className="text-sm font-medium text-gray-700 group-hover:text-sky-700">
+                                Loop Background Video
+                            </span>
+                        </label>
+                        <p className="text-[10px] text-gray-500 mt-2 italic">
+                            If disabled, the video will play once and hold on the final frame (ideal for cinematic entries).
+                        </p>
+                    </div>
+
                     {/* Manual Media Override */}
                     <div className="p-4 border-t border-gray-200 bg-gray-50">
                         <label className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">Force Background Media</label>

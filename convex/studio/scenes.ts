@@ -44,14 +44,19 @@ export const updateScene = mutation({
             v.literal("kitchen"),
             v.literal("luminous-deep")
         ),
+        shouldLoop: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         await requireStudioAccess(ctx);
-        await ctx.db.patch(args.id, {
+        const updates: any = {
             title: args.title,
             backgroundMediaUrl: args.backgroundMediaUrl,
             domain: args.domain,
-        });
+        };
+        if (args.shouldLoop !== undefined) {
+            updates.shouldLoop = args.shouldLoop;
+        }
+        await ctx.db.patch(args.id, updates);
     },
 });
 
