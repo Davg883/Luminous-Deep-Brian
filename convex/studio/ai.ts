@@ -43,7 +43,7 @@ export const generateContent = action({
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash",
+            model: "gemini-2.5-flash",
             generationConfig: { responseMimeType: "application/json" }
         });
 
@@ -203,7 +203,7 @@ export const generateContent = action({
             // ═══════════════════════════════════════════════════════════════
             // TELEMETRY: Fail Run
             // ═══════════════════════════════════════════════════════════════
-            console.error("AI Generation Error:", error);
+            console.error(`AI Generation Error: Status=${error?.status} Message=${error?.message}`, error);
 
             const errorMessage = error?.message || "Unknown AI generation error";
             const errorDetails = error?.response?.text?.() || error?.stack || "";
