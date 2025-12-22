@@ -27,6 +27,7 @@ export default defineSchema({
         backgroundMediaUrl: v.string(),
         isPublished: v.boolean(),
         playbackSpeed: v.optional(v.number()),
+        shouldLoop: v.optional(v.boolean()), // false = play once and hold on final frame
         // Naming Standard v1 Metadata
         variant: v.optional(v.string()),
         tags: v.optional(v.array(v.string())),

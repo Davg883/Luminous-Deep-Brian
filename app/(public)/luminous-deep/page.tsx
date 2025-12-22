@@ -92,6 +92,7 @@ export default function LuminousDeepPage() {
     // Get background media URL from database (handles both images and videos)
     const backgroundMediaUrl = scene?.backgroundMediaUrl;
     const isVideo = backgroundMediaUrl?.match(/\.(mp4|webm|mov)$/i);
+    const shouldLoop = scene?.shouldLoop ?? true; // Default to loop if not specified
 
     return (
         <div className="relative min-h-screen bg-[var(--deep-bg)] overflow-hidden font-mono">
@@ -102,9 +103,10 @@ export default function LuminousDeepPage() {
                         key={backgroundMediaUrl}
                         src={backgroundMediaUrl}
                         autoPlay
-                        loop
+                        loop={shouldLoop}
                         muted
                         playsInline
+                        preload="auto"
                         className="w-full h-full object-cover opacity-30"
                         style={{ filter: "saturate(0.3) brightness(0.4)" }}
                     />

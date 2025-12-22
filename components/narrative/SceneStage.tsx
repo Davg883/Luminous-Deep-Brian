@@ -5,13 +5,20 @@ import { ReactNode, useRef, useEffect } from "react";
 import Image from "next/image";
 
 interface SceneStageProps {
-    mediaUrl?: string; // Optional for now, fallback to placeholder
+    mediaUrl?: string;
     children?: ReactNode;
     isFocused?: boolean;
     playbackSpeed?: number;
+    shouldLoop?: boolean; // false = cinematic transition (play once, hold on final frame)
 }
 
-export default function SceneStage({ mediaUrl, children, isFocused = false, playbackSpeed = 1.0 }: SceneStageProps) {
+export default function SceneStage({
+    mediaUrl,
+    children,
+    isFocused = false,
+    playbackSpeed = 1.0,
+    shouldLoop = true // Default to looping for ambient atmospheres
+}: SceneStageProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
@@ -42,8 +49,9 @@ export default function SceneStage({ mediaUrl, children, isFocused = false, play
                             src={mediaUrl}
                             autoPlay
                             muted
-                            loop
+                            loop={shouldLoop}
                             playsInline
+                            preload="auto"
                             className="w-full h-full object-cover opacity-90"
                         />
                     ) : (

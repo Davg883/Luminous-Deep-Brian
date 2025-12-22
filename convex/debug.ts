@@ -70,3 +70,21 @@ export const cleanupLuminousDeep = mutation({
         return actions.join("\n");
     },
 });
+
+// Set shouldLoop for all scenes
+export const setShouldLoopForScenes = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const allScenes = await ctx.db.query("scenes").collect();
+        const actions: string[] = [];
+
+        for (const scene of allScenes) {
+            // luminous-deep = cinematic (no loop), others = atmosphere (loop)
+            const shouldLoop = scene.domain !== "luminous-deep";
+            await ctx.db.patch(scene._id, { shouldLoop });
+            actions.push(`${scene.title}: shouldLoop = ${shouldLoop}`);
+        }
+
+        return actions.join("\n");
+    },
+});

@@ -113,6 +113,7 @@ export default function DomainPage() {
                 mediaUrl={scene.backgroundMediaUrl}
                 isFocused={!!activeRevealId}
                 playbackSpeed={scene.playbackSpeed}
+                shouldLoop={scene.shouldLoop ?? true}
             >
                 {objects?.map((obj) => (
                     <ObjectTrigger
