@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api";
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import clsx from "clsx";
-import { Activity, Terminal, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
+import { Activity, Terminal, CheckCircle2, XCircle, Clock, Loader2, Radio } from "lucide-react";
 
 interface Run {
     _id: string;
@@ -47,6 +47,7 @@ export default function StudioDashboard() {
     const scenes = useQuery(api.studio.scenes.getAllScenes);
     const agents = useQuery(api.public.scenes.listAgents);
     const recentRuns = useQuery((api as any).studio?.runs?.getRecentRuns ?? api.studio.content.listPacks, { limit: 10 }) as Run[] | undefined;
+    const campaigns = useQuery((api as any).studio?.socialQueries?.listCampaigns);
 
     // Track current time for relative timestamps (client-side only to avoid hydration mismatch)
     const [now, setNow] = useState<number | null>(null);
@@ -64,6 +65,15 @@ export default function StudioDashboard() {
             drafts: packs.filter((p: any) => p.status === "Draft").length
         };
     }, [packs]);
+
+    const broadcastStats = useMemo(() => {
+        if (!campaigns) return null;
+        return {
+            scheduled: campaigns.filter((c: any) => c.status === "scheduled").length,
+            posted: campaigns.filter((c: any) => c.status === "posted").length,
+            total: campaigns.length
+        };
+    }, [campaigns]);
 
     // Check if runs API is available
     const runsApiAvailable = !!(api as any).studio?.runs;
@@ -139,6 +149,39 @@ export default function StudioDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Broadcasting Status Widget */}
+            {broadcastStats && (
+                <Link href="/studio/social" className="block bg-gradient-to-r from-violet-600 to-fuchsia-600 p-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all cursor-pointer group">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                                <Radio className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-white font-bold text-lg">Broadcasting Hub</h3>
+                                <p className="text-white/70 text-sm">Social Command Centre</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <div className="text-center">
+                                <div className="text-3xl font-black text-white">{broadcastStats.scheduled}</div>
+                                <div className="text-xs font-bold text-purple-200 uppercase tracking-wider">Scheduled</div>
+                            </div>
+                            <div className="w-px h-10 bg-white/20" />
+                            <div className="text-center">
+                                <div className="text-3xl font-black text-emerald-300">{broadcastStats.posted}</div>
+                                <div className="text-xs font-bold text-purple-200 uppercase tracking-wider">Posted</div>
+                            </div>
+                            <div className="w-px h-10 bg-white/20" />
+                            <div className="text-center">
+                                <div className="text-3xl font-black text-white/60">{broadcastStats.total}</div>
+                                <div className="text-xs font-bold text-purple-200 uppercase tracking-wider">Total</div>
+                            </div>
+                        </div>
+                    </div>
+                </Link>
+            )}
 
             {/* Live System Feed */}
             <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">

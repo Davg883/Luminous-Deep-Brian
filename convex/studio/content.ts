@@ -1,7 +1,5 @@
-// ... (imports)
 import { v } from "convex/values";
-import { mutation, query, internalMutation, internalQuery, internalAction } from "../_generated/server";
-import { api, internal, components } from "../_generated/api";
+import { mutation, query, internalMutation } from "../_generated/server";
 import { requireStudioAccess } from "../auth/helpers";
 
 export const listPacks = query({
@@ -9,12 +7,10 @@ export const listPacks = query({
     handler: async (ctx) => {
         await requireStudioAccess(ctx);
         const packs = await ctx.db.query("contentPacks").collect();
-        // Sort by newest first
         return packs.sort((a, b) => b._creationTime - a._creationTime);
     },
 });
 
-// ... listAllReveals ...
 export const listAllReveals = query({
     args: {},
     handler: async (ctx) => {
@@ -56,7 +52,6 @@ export const listAllReveals = query({
             };
         }));
 
-        // Sort by publishedAt (if available) or creationTime, DESC
         return enrichedReveals.sort((a, b) => {
             const timeA = a.publishedAt || a._creationTime;
             const timeB = b.publishedAt || b._creationTime;
@@ -72,20 +67,11 @@ export const listUnlinkedReveals = query({
         const reveals = await ctx.db.query("reveals").collect();
         const objects = await ctx.db.query("objects").collect();
         const linkedRevealIds = new Set(objects.map(obj => obj.revealId?.toString()).filter(Boolean));
-        // Sort newest first
         return reveals
             .filter(reveal => !linkedRevealIds.has(reveal._id.toString()))
             .sort((a, b) => b._creationTime - a._creationTime);
     },
 });
-
-// ... importPack ...
-// ... updatePack ...
-// ... publishPack ...
-// ... deletePack ...
-// ... resolveMedia ...
-// ... deleteRevealInternal ...
-// ... deleteReveal ...
 
 export const reassignRevealSpace = mutation({
     args: {
@@ -95,7 +81,6 @@ export const reassignRevealSpace = mutation({
     handler: async (ctx, args) => {
         await requireStudioAccess(ctx);
 
-        // 1. Find the new scene
         const newScene = await ctx.db
             .query("scenes")
             .withIndex("by_slug", (q) => q.eq("slug", args.newSceneSlug))
@@ -105,22 +90,15 @@ export const reassignRevealSpace = mutation({
             throw new Error(`Scene with slug '${args.newSceneSlug}' not found.`);
         }
 
-        // 2. Update the Reveal record
-        await ctx.db.patch(args.revealId, {
-            spaceId: newScene._id
-        });
+        await ctx.db.patch(args.revealId, { spaceId: newScene._id });
 
-        // 3. Update any linked Object(s)
         const linkedObjects = await ctx.db
             .query("objects")
-            .withIndex("by_scene") // Just scanning is fine if index isn't perfect for this, but we have strict checks
             .filter(q => q.eq(q.field("revealId"), args.revealId))
             .collect();
 
         for (const obj of linkedObjects) {
-            await ctx.db.patch(obj._id, {
-                sceneId: newScene._id
-            });
+            await ctx.db.patch(obj._id, { sceneId: newScene._id });
         }
 
         return { success: true, newSceneId: newScene._id, movedObjects: linkedObjects.length };
@@ -154,7 +132,6 @@ export const importPack = mutation({
     handler: async (ctx, args) => {
         const identity = await requireStudioAccess(ctx);
 
-        // 1. Check for existing pack with same hotspotId
         const existing = await ctx.db
             .query("contentPacks")
             .withIndex("by_hotspot", (q) => q.eq("hotspotId", args.hotspotId))
@@ -165,7 +142,6 @@ export const importPack = mutation({
         }
 
         if (existing && args.overwriteConfirmed) {
-            // Archive existing to history
             await ctx.db.insert("contentPacksHistory", {
                 packId: existing._id,
                 hotspotId: existing.hotspotId,
@@ -174,8 +150,6 @@ export const importPack = mutation({
                 archivedBy: identity.tokenIdentifier,
             });
 
-            // Delete old or we can patch. User said "overwrite confirmed", so let's patch the existing one to keep ID?
-            // User script: "Overwriting an existing hotspot requires explicit confirmation and preserves history"
             const { overwriteConfirmed, ...data } = args;
             await ctx.db.patch(existing._id, {
                 ...data,
@@ -185,7 +159,6 @@ export const importPack = mutation({
             return { success: true, id: existing._id, updated: true };
         }
 
-        // 2. Insert new
         const { overwriteConfirmed, ...data } = args;
         const id = await ctx.db.insert("contentPacks", {
             ...data,
@@ -194,7 +167,6 @@ export const importPack = mutation({
         return { success: true, id };
     },
 });
-
 
 export const updatePack = mutation({
     args: {
@@ -226,52 +198,45 @@ export const publishPack = mutation({
         const pack = await ctx.db.get(args.id);
         if (!pack) throw new Error("Pack not found");
 
-        // 0. Integrity Check: Ensure Scene Exists
         let finalSceneId = pack.sceneId;
         const scene = await ctx.db.get(finalSceneId);
         if (!scene) {
-            // Attempt recovery via domain/slug
             const recovered = await ctx.db.query("scenes").withIndex("by_slug", q => q.eq("slug", pack.domain.toLowerCase())).first();
             if (recovered) finalSceneId = recovered._id;
-            else throw new Error(`Target Scene (ID: ${pack.sceneId}) not found and cannot be recovered via slug ${pack.domain}.`);
+            else throw new Error(`Target Scene (ID: ${pack.sceneId}) not found.`);
         }
 
-        // 1. Map Domain to Canonical Voice
         let voice: any = "systems";
         const domain = pack.domain.toLowerCase();
         if (domain === "workshop") voice = "sparkline";
         else if (domain === "study") voice = "hearth";
         else if (domain === "boathouse") voice = "systems";
-        else if (domain === "home") voice = "hearth"; // Default home to Eleanor/Hearth for now
+        else if (domain === "home") voice = "hearth";
 
-        // 2. Create the Reveal
         const revealId = await ctx.db.insert("reveals", {
             type: pack.revealType as any,
             title: pack.title,
             content: pack.bodyCopy,
             voice,
             tags: pack.tags,
-            mediaUrl: pack.mediaRefs, // Link the media ref
+            mediaUrl: pack.mediaRefs,
             role: "canon",
-            status: "published", // Lowercase for backend consistency
+            status: "published",
             publishedAt: Date.now(),
             spaceId: finalSceneId,
             phase: pack.phase,
         });
 
-        // 3. Create the Object
         await ctx.db.insert("objects", {
             sceneId: finalSceneId,
             name: pack.title,
-            x: 55, // Offset slightly from center so overlapping isn't perfect
+            x: 55,
             y: 45,
             hint: pack.hintLine || `Look closer at the ${pack.title.toLowerCase()}`,
             revealId,
             role: "canon",
         });
 
-
-        // 4. Delete the draft pack (It has been promoted to Reveal)
         await ctx.db.delete(args.id);
         return { success: true };
     },
@@ -299,15 +264,11 @@ export const resolveMedia = query({
 export const deleteRevealInternal = internalMutation({
     args: { id: v.id("reveals") },
     handler: async (ctx, args) => {
-        // Delete the reveal itself
         await ctx.db.delete(args.id);
-
-        // Scan objects for any that link to this reveal (cleanup "ghost dots")
         const objects = await ctx.db
             .query("objects")
             .filter((q) => q.eq(q.field("revealId"), args.id))
             .collect();
-
         for (const obj of objects) {
             await ctx.db.delete(obj._id);
         }
@@ -318,19 +279,38 @@ export const deleteReveal = mutation({
     args: { id: v.id("reveals") },
     handler: async (ctx, args) => {
         await requireStudioAccess(ctx);
-
-        // Delete the reveal itself
         await ctx.db.delete(args.id);
-
-        // Scan objects for any that link to this reveal
         const objects = await ctx.db
             .query("objects")
             .filter((q) => q.eq(q.field("revealId"), args.id))
             .collect();
-
         for (const obj of objects) {
             await ctx.db.delete(obj._id);
         }
     },
 });
 
+export const updateReveal = mutation({
+    args: {
+        id: v.id("reveals"),
+        title: v.optional(v.string()),
+        content: v.optional(v.string()),
+        mediaUrl: v.optional(v.string()),
+        phase: v.optional(v.union(
+            v.literal("early_year"),
+            v.literal("spring"),
+            v.literal("summer"),
+            v.literal("autumn"),
+            v.literal("winter")
+        ))
+    },
+    handler: async (ctx, args) => {
+        await requireStudioAccess(ctx);
+        const updates: any = {};
+        if (args.title !== undefined) updates.title = args.title;
+        if (args.content !== undefined) updates.content = args.content;
+        if (args.mediaUrl !== undefined) updates.mediaUrl = args.mediaUrl;
+        if (args.phase !== undefined) updates.phase = args.phase;
+        await ctx.db.patch(args.id, updates);
+    }
+});
