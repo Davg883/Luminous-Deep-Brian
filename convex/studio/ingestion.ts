@@ -4,11 +4,9 @@ import { v } from "convex/values";
 import { action } from "../_generated/server";
 import { requireStudioAccessAction } from "../auth/helpers";
 import { internal } from "../_generated/api";
-import cloudinaryPkg from "cloudinary";
 import crypto from "crypto";
 
-// Extract v2 from the default export
-const cloudinary = cloudinaryPkg.v2;
+// Cloudinary will be required lazily inside the action to avoid module loading issues
 
 type AgentIdentity = "julian" | "eleanor" | "cassie" | "unknown";
 type AssetRole = "portrait" | "technical_setting" | "mood_piece" | "hands" | "wardrobe" | "environment" | "props" | "unknown";
@@ -147,9 +145,13 @@ export const smartAgenticUpload = action({
     },
     handler: async (ctx, args) => {
         // ═══════════════════════════════════════════════════════════════
-        // STEP 0: CONFIGURE CLOUDINARY IMMEDIATELY (before anything else)
-        // This prevents 'reading config' errors
+        // STEP 0: LAZY LOAD CLOUDINARY (require inside handler for reliability)
+        // This prevents ESM module loading issues in Convex
         // ═══════════════════════════════════════════════════════════════
+
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const cloudinaryModule = require("cloudinary");
+        const cloudinary = cloudinaryModule.v2;
 
         if (!process.env.CLOUDINARY_API_KEY) {
             throw new Error("CLOUDINARY_API_KEY is not defined in the environment.");
