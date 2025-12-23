@@ -18,9 +18,10 @@ export const fetchEmbedding = internalAction({
         }
 
         try {
-            const model = genAI.getGenerativeModel({ model: "text-embedding-005" });
+            // Use stable text-embedding-004 model (005 not available via this API)
+            const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
 
-            // Simple text-based embedding call
+            // Embed with simple text input (SDK handles the rest)
             const result = await model.embedContent(args.text);
 
             console.log("[EMBEDDING] Success! Dimensions:", result.embedding.values.length);
