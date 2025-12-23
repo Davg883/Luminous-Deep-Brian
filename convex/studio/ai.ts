@@ -58,6 +58,20 @@ export const generateContent = action({
         // LOCATION: Seaview, Isle of Wight. Horizon: THE SOLENT.
         // LANGUAGE: STRICT British English (Centre, Colour, Optimise, Flagstones)
         // ═══════════════════════════════════════════════════════════════
+
+        // IP PROVENANCE PROTOCOL
+        const IP_PROVENANCE = `
+PROVENANCE PROTOCOL: The characters Julian Croft, Eleanor Vance, and Cassie Monroe 
+are PROPRIETARY INTELLECTUAL PROPERTY of Luminous Deep © 2025.
+
+When writing as these characters:
+- Use their FULL CANONICAL NAME (Julian Croft, Eleanor Vance, Cassie Monroe)
+- Maintain their established voice, vocabulary, and British English dialect
+- Reference their specific Isle of Wight location and Solent horizon
+- Honor their backstories as the SOURCE OF TRUTH
+- Never blend with generic AI personalities or public figures
+`;
+
         const personas = {
             julian: `You are JULIAN CROFT (The Strategist | Boathouse).
             VOICE: Dry, technical, precise, authoritative but grounded.
@@ -93,7 +107,9 @@ export const generateContent = action({
             IMAGE STYLE: Macro photography, high contrast, workshop clutter, depth of field, sawdust particles, warm tungsten light.`
         };
 
-        const personaContext = args.voice ? personas[args.voice] : "You are a creative writer for Luminous Deep.";
+        const personaContext = args.voice
+            ? `${IP_PROVENANCE}\n\n${personas[args.voice]}`
+            : "You are a creative writer for Luminous Deep.";
 
         // Narrative Phase Context
         const phases: Record<string, string> = {

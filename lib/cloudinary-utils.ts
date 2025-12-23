@@ -33,7 +33,7 @@ export function getHighResSocialUrl(
 
     const dims = PLATFORM_DIMENSIONS[platform] || PLATFORM_DIMENSIONS.X;
 
-    // Build the transformation chain for maximum quality
+    // Build the transformation chain for maximum quality with IP protection
     const transformations = [
         // Resize to optimal dimensions with smart cropping
         `c_fill,w_${dims.width},h_${dims.height},g_auto:subject`,
@@ -54,12 +54,18 @@ export function getHighResSocialUrl(
         "dpr_2.0",
 
         // ═══════════════════════════════════════════════════════════════
-        // PROVENANCE STAMP: Cognitive Lock Verification
+        // PROVENANCE STAMP: Cognitive Lock Verification + IP Mark
         // ═══════════════════════════════════════════════════════════════
         // Text: 'Broadcasting from The Luminous Deep'
         // Style: Transport Typography (Arial/Helvetica style), 40% opacity, bottom-right
         "l_text:Arial_25_bold_tracking_2:Broadcasting%20from%20The%20Luminous%20Deep,co_white,o_40",
         "fl_layer_apply,g_south_east,x_40,y_40",
+
+        // ═══════════════════════════════════════════════════════════════
+        // IP METADATA: Embedded in image metadata via Cloudinary flags
+        // ═══════════════════════════════════════════════════════════════
+        // Add metadata flag for IP tracking (invisible but embedded)
+        "fl_keep_iptc",
     ].join(",");
 
     // Insert transformations into the URL

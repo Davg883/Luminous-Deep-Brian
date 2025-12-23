@@ -63,6 +63,44 @@ const BRITISH_VISUAL_LANGUAGE = {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// IP PROTECTION: Character Provenance & Canonical Names
+// ═══════════════════════════════════════════════════════════════
+
+const CHARACTER_CANONICAL_NAMES: Record<string, string> = {
+    julian: "Julian Croft",
+    eleanor: "Eleanor Vance",
+    cassie: "Cassie Monroe",
+};
+
+const CHARACTER_PROVENANCE_HEADER = `
+═══════════════════════════════════════════════════════════════
+PROVENANCE PROTOCOL - LUMINOUS DEEP INTELLECTUAL PROPERTY
+═══════════════════════════════════════════════════════════════
+
+The characters Julian Croft, Eleanor Vance, and Cassie Monroe are 
+PROPRIETARY INTELLECTUAL PROPERTY of Luminous Deep © 2025.
+
+You are STRICTLY PROHIBITED from:
+1. Utilizing generic stock faces or AI-generated composite faces
+2. Blending features from public figures or celebrities
+3. Creating "average" or "neutral" facial features
+
+You MUST derive ALL visual characteristics from the provided
+14 Reference Image slots (Visual Bible). These slots represent
+the GROUND TRUTH for our proprietary character IP:
+
+- FACIAL GEOMETRY: Exact bone structure, jaw line, eye spacing
+- DISTINCTIVE FEATURES: Glasses (architectural frames for Julian),
+  jewelry, scars, birthmarks - replicate EXACTLY as shown
+- WARDROBE: Gansey wool patterns (Cassie), linen textures (Eleanor),
+  technical outerwear (Julian) - maintain fabric authenticity
+- ACCESSORIES: Watch styles, bag types, eyewear - brand-consistent
+
+Reference images are AUTHORITATIVE. Zero tolerance for drift.
+═══════════════════════════════════════════════════════════════
+`;
+
+// ═══════════════════════════════════════════════════════════════
 // CORE ACTION: Nano Banana Pro Generation
 // ═══════════════════════════════════════════════════════════════
 
@@ -96,7 +134,7 @@ async function nanoBananaProCore(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 contents: [{
-                    parts: buildPromptParts(visualPrompt, referenceImageUrls)
+                    parts: buildPromptParts(visualPrompt, referenceImageUrls, agentVoice)
                 }],
                 safetySettings: [
                     { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
@@ -274,8 +312,19 @@ Generate a single, high-fidelity image.
 // HELPER: Build Prompt Parts with Character Lock Instructions
 // ═══════════════════════════════════════════════════════════════
 
-function buildPromptParts(prompt: string, referenceUrls?: string[]): any[] {
+function buildPromptParts(prompt: string, referenceUrls?: string[], agentVoice?: string): any[] {
     const parts: any[] = [];
+
+    // ALWAYS add Provenance Header for IP protection
+    parts.push({ text: CHARACTER_PROVENANCE_HEADER });
+
+    // Add canonical character name if applicable
+    if (agentVoice && CHARACTER_CANONICAL_NAMES[agentVoice]) {
+        const canonicalName = CHARACTER_CANONICAL_NAMES[agentVoice];
+        parts.push({
+            text: `\nCHARACTER IDENTITY: This image features ${canonicalName}, a proprietary character of Luminous Deep.\nUse ONLY the provided Visual Bible references - do not substitute with generic or stock imagery.\n`
+        });
+    }
 
     // Add Character Lock instruction if we have reference images
     if (referenceUrls && referenceUrls.length > 0) {
@@ -298,6 +347,7 @@ MANDATORY CONSISTENCY REQUIREMENTS:
 
 REFERENCE WEIGHT: These ${referenceUrls.length} images are AUTHORITATIVE. 
 Any ambiguity in the prompt should defer to the Visual Bible.
+Image Reference Strength: MAXIMUM (1.0) - Zero tolerance for drift.
 
 ═══════════════════════════════════════════════════════════════
 `;
@@ -430,11 +480,26 @@ async function uploadToCloudinaryWithMetadata(
     const timestamp = Math.floor(Date.now() / 1000);
     const folder = "Luminous Deep/Generated/NanoBananaPro";
     const publicId = `${sceneSlug}_${agentVoice}_${timestamp}`;
-    const tags = [agentVoice, sceneSlug, "ai-generated", "nano-banana-pro", "synthid-verified"].join(",");
+    const canonicalName = CHARACTER_CANONICAL_NAMES[agentVoice] || agentVoice;
+    const tags = [agentVoice, sceneSlug, "ai-generated", "nano-banana-pro", "synthid-verified", "luminous-deep-ip"].join(",");
 
     // Create SHA1 signature for Cloudinary
     const crypto = await import("crypto");
+
+    // Enhanced context with IP ownership metadata
+    const ipContext = [
+        `agent=${agentVoice}`,
+        `canonical_name=${canonicalName}`,
+        `scene=${sceneSlug}`,
+        `aspect=${aspectRatio}`,
+        `generated_by=nano_banana_pro`,
+        `LD_IP_OWNER=Luminous Deep 2025`,
+        `copyright=Luminous Deep Ltd`,
+        `character_ip_protected=true`
+    ].join("|");
+
     const signatureParams = [
+        `context=${ipContext}`,
         `folder=${folder}`,
         `public_id=${publicId}`,
         `tags=${tags}`,
@@ -446,7 +511,7 @@ async function uploadToCloudinaryWithMetadata(
         .update(signatureParams + cloudinaryApiSecret)
         .digest("hex");
 
-    // Upload with context metadata
+    // Upload with enhanced IP metadata
     const formData = new FormData();
     formData.append("file", `data:image/png;base64,${imageBase64}`);
     formData.append("api_key", cloudinaryApiKey);
@@ -455,7 +520,7 @@ async function uploadToCloudinaryWithMetadata(
     formData.append("folder", folder);
     formData.append("public_id", publicId);
     formData.append("tags", tags);
-    formData.append("context", `agent=${agentVoice}|scene=${sceneSlug}|aspect=${aspectRatio}|generated_by=nano_banana_pro`);
+    formData.append("context", ipContext);
 
     const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryCloud}/image/upload`, {
         method: "POST",
