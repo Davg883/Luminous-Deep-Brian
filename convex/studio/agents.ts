@@ -106,6 +106,7 @@ export const updateAgent = mutation({
         autonomy: v.optional(v.number()),
         isActive: v.optional(v.boolean()),
         biography: v.optional(v.string()),
+        philosophy: v.optional(v.string()),
         glimpseUrl: v.optional(v.string()),
     },
     handler: async (ctx, { id, ...updates }) => {

@@ -36,6 +36,7 @@ export default defineSchema({
         mood: v.optional(v.array(v.string())), // e.g., ["focused", "warm", "creative"]
         allowedTools: v.optional(v.array(v.string())), // e.g., ["search", "generate", "analyze"]
         ambientAudioUrl: v.optional(v.string()), // Room-specific soundscape
+        residentAgentId: v.optional(v.id("agents")), // For "Ghost in the Glass" functionality
     }).index("by_slug", ["slug"]).index("by_domain", ["domain"]),
 
     objects: defineTable({
@@ -129,6 +130,7 @@ export default defineSchema({
         )),
         // Cognitive Alignment & Visuals
         biography: v.optional(v.string()), // Long-form dossier context
+        philosophy: v.optional(v.string()), // Core belief system / operational stance
         glimpseUrl: v.optional(v.string()), // Ghost-in-the-glass overlay asset
         isActive: v.boolean(),
         createdAt: v.number(),

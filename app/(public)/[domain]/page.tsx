@@ -119,6 +119,7 @@ export default function DomainPage() {
                 isFocused={!!activeRevealId}
                 playbackSpeed={scene.playbackSpeed}
                 shouldLoop={scene.shouldLoop ?? true}
+                glimpseUrl={scene.residentAgent?.glimpseUrl}
             >
                 {objects?.map((obj: any, index: number) => (
                     <ObjectTrigger

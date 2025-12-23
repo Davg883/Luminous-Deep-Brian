@@ -76,7 +76,7 @@ async function reindexCanonCore(ctx: any) {
         }
 
         console.log(`[REINDEX] Embedding Dossier: ${agent.name}`);
-        const text = `Identity: ${agent.name}\nRole: ${agent.role}\nDossier: ${agent.biography}\nVoice: ${agent.voice || "neutral"}`;
+        const text = `Identity: ${agent.name}\nRole: ${agent.role}\nDossier: ${agent.biography}\nPhilosophy: ${agent.philosophy || ""}\nVoice: ${agent.voice || "neutral"}`;
 
         try {
             const embedding = await ctx.runAction(internal.lib.embeddings.fetchEmbedding, { text });

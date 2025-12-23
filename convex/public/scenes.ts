@@ -5,10 +5,20 @@ import { v } from "convex/values";
 export const getScene = query({
     args: { slug: v.string() },
     handler: async (ctx, args) => {
-        return await ctx.db
+        const scene = await ctx.db
             .query("scenes")
             .withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
             .first();
+
+        if (!scene) return null;
+
+        // Enrich with Resident Agent (Ghost in the Glass)
+        let residentAgent = null;
+        if (scene.residentAgentId) {
+            residentAgent = await ctx.db.get(scene.residentAgentId);
+        }
+
+        return { ...scene, residentAgent };
     },
 });
 

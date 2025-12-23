@@ -32,6 +32,7 @@ interface Agent {
     isActive: boolean;
     createdAt: number;
     biography?: string;
+    philosophy?: string;
     glimpseUrl?: string;
     homeSpace?: {
         slug: string;
@@ -72,6 +73,7 @@ export default function AgentManagerPage() {
     // Tab & Edit State
     const [activeTab, setActiveTab] = useState<"config" | "dossier">("config");
     const [dossierDraft, setDossierDraft] = useState("");
+    const [philosophyDraft, setPhilosophyDraft] = useState("");
     const [glimpseDraft, setGlimpseDraft] = useState("");
 
     // Track previous agent to reset drafts
@@ -80,6 +82,7 @@ export default function AgentManagerPage() {
 
     if (activeAgent && activeAgent._id !== prevAgentId) {
         setDossierDraft(activeAgent.biography || "");
+        setPhilosophyDraft(activeAgent.philosophy || "");
         setGlimpseDraft(activeAgent.glimpseUrl || "");
         setPrevAgentId(activeAgent._id);
     }
@@ -91,6 +94,7 @@ export default function AgentManagerPage() {
             await updateAgent({
                 id: activeAgent._id,
                 biography: dossierDraft,
+                philosophy: philosophyDraft,
                 glimpseUrl: glimpseDraft
             });
         }
@@ -342,17 +346,31 @@ export default function AgentManagerPage() {
                                     </div>
 
                                     {/* Biography Editor */}
-                                    <div className="space-y-2 h-[400px] flex flex-col">
-                                        <label className="text-xs text-zinc-500 uppercase tracking-wider flex items-center justify-between">
-                                            <span>Start Logic / Biography</span>
-                                            <span className="text-zinc-600">{dossierDraft.length} chars</span>
-                                        </label>
-                                        <textarea
-                                            value={dossierDraft}
-                                            onChange={(e) => setDossierDraft(e.target.value)}
-                                            placeholder="Enter deep backstory, defining memories, and psychological profile here..."
-                                            className="flex-1 bg-black/20 border border-white/10 rounded p-4 text-sm text-zinc-300 font-mono leading-relaxed focus:border-[var(--deep-accent)] focus:outline-none transition-colors resize-none"
-                                        />
+                                    <div className="grid grid-cols-2 gap-4 h-[400px]">
+                                        <div className="space-y-2 flex flex-col h-full">
+                                            <label className="text-xs text-zinc-500 uppercase tracking-wider flex items-center justify-between">
+                                                <span>Start Logic / Biography</span>
+                                                <span className="text-zinc-600">{dossierDraft.length} chars</span>
+                                            </label>
+                                            <textarea
+                                                value={dossierDraft}
+                                                onChange={(e) => setDossierDraft(e.target.value)}
+                                                placeholder="Enter deep backstory..."
+                                                className="flex-1 bg-black/20 border border-white/10 rounded p-4 text-sm text-zinc-300 font-mono leading-relaxed focus:border-[var(--deep-accent)] focus:outline-none transition-colors resize-none"
+                                            />
+                                        </div>
+                                        <div className="space-y-2 flex flex-col h-full">
+                                            <label className="text-xs text-zinc-500 uppercase tracking-wider flex items-center justify-between">
+                                                <span>Core Philosophy</span>
+                                                <span className="text-zinc-600">{philosophyDraft.length} chars</span>
+                                            </label>
+                                            <textarea
+                                                value={philosophyDraft}
+                                                onChange={(e) => setPhilosophyDraft(e.target.value)}
+                                                placeholder="Enter philosophical stance..."
+                                                className="flex-1 bg-black/20 border border-white/10 rounded p-4 text-sm text-zinc-300 font-mono leading-relaxed focus:border-[var(--deep-accent)] focus:outline-none transition-colors resize-none"
+                                            />
+                                        </div>
                                     </div>
 
                                     {/* Action Bar */}

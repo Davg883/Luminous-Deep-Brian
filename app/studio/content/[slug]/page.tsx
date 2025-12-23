@@ -16,6 +16,7 @@ export default function SceneEditor() {
     const searchParams = useSearchParams();
 
     const scene = useQuery(api.studio.scenes.getScene, { slug });
+    const agents = useQuery(api.public.scenes.listAgents) || [];
     const unlinkedReveals = useQuery(api.studio.content.listUnlinkedReveals);
     const addObject = useMutation(api.studio.scenes.addObject);
     const addObjectWithReveal = useMutation(api.studio.scenes.addObjectWithExistingReveal);
@@ -472,6 +473,38 @@ export default function SceneEditor() {
                                 }}
                             />
                         </div>
+                    </div>
+
+                    {/* Resident Glimpse */}
+                    <div className="p-4 border-t border-gray-200 bg-purple-50">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">Resident Glimpse (Ghost)</label>
+                        <select
+                            className="w-full border border-purple-300 rounded p-2 text-sm outline-none focus:ring-2 focus:ring-purple-400 bg-white"
+                            value={scene.residentAgentId || ""}
+                            onChange={async (e) => {
+                                const agentId = e.target.value as Id<"agents">;
+                                await updateScene({
+                                    id: scene._id,
+                                    title: scene.title,
+                                    domain: scene.domain,
+                                    backgroundMediaUrl: scene.backgroundMediaUrl,
+                                    shouldLoop: scene.shouldLoop,
+                                    ambientAudioUrl: scene.ambientAudioUrl,
+                                    residentAgentId: agentId || undefined
+                                });
+                            }}
+                        >
+                            <option value="">-- No Presence --</option>
+                            {agents.map((agent: any) => (
+                                <option key={agent._id} value={agent._id}>
+                                    {agent.name} {agent.glimpseUrl ? "(Active)" : "(No Glimpse Asset)"}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-[10px] text-gray-500 mt-2 italic">
+                            Assigning an agent will enable the "Ghost in the Glass" overlay mechanic.
+                            Ensure the agent has a Glimpse URL in their dossier.
+                        </p>
                     </div>
                 </div>
             </div>

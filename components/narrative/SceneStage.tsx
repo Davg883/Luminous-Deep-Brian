@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useAnimation } from "framer-motion";
 import { ReactNode, useRef, useEffect } from "react";
 import Image from "next/image";
 
@@ -23,11 +23,46 @@ export default function SceneStage({
 }: SceneStageProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
 
+    const glimpseControls = useAnimation();
+
     useEffect(() => {
         if (videoRef.current) {
             videoRef.current.playbackRate = playbackSpeed;
         }
     }, [playbackSpeed, mediaUrl]);
+
+    // Randomize Glimpse Appearance
+    useEffect(() => {
+        if (!glimpseUrl) return;
+
+        let isMounted = true;
+
+        const runGlimpseCycle = async () => {
+            // Initial random delay between 45s and 90s
+            const delay = Math.random() * (90000 - 45000) + 45000;
+            await new Promise(r => setTimeout(r, delay));
+
+            if (!isMounted) return;
+
+            // Fade In
+            await glimpseControls.start({ opacity: 0.08, transition: { duration: 3, ease: "easeInOut" } });
+
+            // Hold
+            await new Promise(r => setTimeout(r, 2000));
+
+            if (!isMounted) return;
+
+            // Fade Out
+            await glimpseControls.start({ opacity: 0, transition: { duration: 3, ease: "easeInOut" } });
+
+            // Recurse
+            runGlimpseCycle();
+        };
+
+        runGlimpseCycle();
+
+        return () => { isMounted = false; };
+    }, [glimpseUrl, glimpseControls]);
 
     return (
         <div className="relative w-full h-screen overflow-hidden bg-stone-900 border-b border-driftwood/20">
@@ -89,22 +124,26 @@ export default function SceneStage({
                         <motion.div
                             key="glimpse-layer"
                             className="absolute inset-0 z-10 pointer-events-none mix-blend-screen"
-                            animate={{
-                                opacity: [0, 0.1, 0, 0]
-                            }}
-                            transition={{
-                                duration: 45,
-                                times: [0, 0.04, 0.08, 1], // 0s->2s (in), 2s->4s (out), rest silence
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            }}
+                            initial={{ opacity: 0 }}
+                            animate={glimpseControls}
                         >
-                            <Image
-                                src={glimpseUrl}
-                                alt="Reflected Presence"
-                                fill
-                                className="object-cover opacity-100" // Opacity controlled by parent motion.div
-                            />
+                            {glimpseUrl.match(/\.(mp4|webm|mov)$/i) ? (
+                                <video
+                                    src={glimpseUrl}
+                                    autoPlay
+                                    muted
+                                    loop
+                                    playsInline
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <Image
+                                    src={glimpseUrl}
+                                    alt="Reflected Presence"
+                                    fill
+                                    className="object-cover"
+                                />
+                            )}
                         </motion.div>
                     )}
 

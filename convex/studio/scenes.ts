@@ -57,6 +57,7 @@ export const updateScene = mutation({
         ),
         shouldLoop: v.optional(v.boolean()),
         ambientAudioUrl: v.optional(v.string()),
+        residentAgentId: v.optional(v.id("agents")),
     },
     handler: async (ctx, args) => {
         await requireStudioAccess(ctx);
@@ -70,6 +71,9 @@ export const updateScene = mutation({
         }
         if (args.ambientAudioUrl !== undefined) {
             updates.ambientAudioUrl = args.ambientAudioUrl;
+        }
+        if (args.residentAgentId !== undefined) {
+            updates.residentAgentId = args.residentAgentId;
         }
         await ctx.db.patch(args.id, updates);
     },
