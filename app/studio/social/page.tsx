@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { getHighResSocialUrl, getDownloadUrl } from "@/lib/cloudinary-utils";
 
 // ═══════════════════════════════════════════════════════════════
 // SOCIAL COMMAND CENTRE
@@ -78,6 +79,7 @@ export default function SocialStudioPage() {
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"create" | "campaigns">("create");
     const [anchorsUsed, setAnchorsUsed] = useState<number>(0);
+    const [copyAnchorsUsed, setCopyAnchorsUsed] = useState<number>(0);
 
     // ─── Queries ─────────────────────────────────────────────────
     const agents = useQuery(api.studio.agents.listAgents);
@@ -113,6 +115,7 @@ export default function SocialStudioPage() {
                 charLimit: PLATFORM_CONFIG[selectedPlatform].charLimit,
             });
             setGeneratedCopy(result.copy);
+            setCopyAnchorsUsed(result.dnaAnchorsUsed || 0);
         } catch (error: any) {
             console.error("Generation error:", error);
             alert(`Failed to generate copy: ${error.message || "Unknown error"}`);
@@ -265,6 +268,52 @@ export default function SocialStudioPage() {
                                 )}
                             </div>
 
+                            {/* DNA Lock Indicator - Task 2 */}
+                            {selectedAgentData && anchorSummary && (() => {
+                                const voice = selectedAgentData.voice || "julian";
+                                const anchorCount = (anchorSummary as Record<string, number>)[voice] || 0;
+                                return (
+                                    <div className="bg-gradient-to-br from-violet-900/30 to-fuchsia-900/30 rounded-2xl p-4 border border-violet-500/30">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-2xl">🧬</span>
+                                                <div>
+                                                    <span className="text-sm font-semibold text-white">DNA Lock</span>
+                                                    <p className="text-xs text-slate-400">Character Consistency</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className={`text-2xl font-bold ${anchorCount >= 10 ? "text-emerald-400" :
+                                                        anchorCount >= 5 ? "text-amber-400" :
+                                                            anchorCount > 0 ? "text-orange-400" :
+                                                                "text-slate-500"
+                                                    }`}>
+                                                    {anchorCount}/14
+                                                </span>
+                                                <p className="text-xs text-slate-400">Anchors Active</p>
+                                            </div>
+                                        </div>
+                                        {/* Progress bar */}
+                                        <div className="mt-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full transition-all duration-500 ${anchorCount >= 10 ? "bg-gradient-to-r from-emerald-500 to-emerald-400" :
+                                                        anchorCount >= 5 ? "bg-gradient-to-r from-amber-500 to-amber-400" :
+                                                            "bg-gradient-to-r from-orange-500 to-orange-400"
+                                                    }`}
+                                                style={{ width: `${anchorCount / 14 * 100}%` }}
+                                            />
+                                        </div>
+                                        <p className="mt-2 text-xs text-slate-500 text-center">
+                                            {anchorCount >= 10
+                                                ? "✓ Strong identity lock - Output will be 100% on-brand"
+                                                : anchorCount >= 5
+                                                    ? "⚠ Moderate lock - Add more anchors for consistency"
+                                                    : "⚠ Weak lock - Upload more Visual Bible assets"}
+                                        </p>
+                                    </div>
+                                );
+                            })()}
+
                             {/* Visual Bible Preview */}
                             {selectedAgentData && (
                                 <div className="bg-slate-800/50 rounded-2xl p-6 border border-white/5">
@@ -399,14 +448,40 @@ export default function SocialStudioPage() {
                                         </div>
                                     )}
                                     {generatedImage && (
-                                        <a
-                                            href={generatedImage}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="mt-3 block w-full py-2 bg-slate-700/50 rounded-lg text-sm text-slate-300 hover:bg-slate-700 transition-colors text-center"
-                                        >
-                                            🔗 Open Full Size
-                                        </a>
+                                        <div className="mt-3 space-y-2">
+                                            {/* DNA Lock Status */}
+                                            {anchorsUsed > 0 && (
+                                                <div className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm ${anchorsUsed >= 10 ? "bg-emerald-500/20 text-emerald-300" :
+                                                    anchorsUsed >= 5 ? "bg-amber-500/20 text-amber-300" :
+                                                        "bg-orange-500/20 text-orange-300"
+                                                    }`}>
+                                                    <span>🧬</span>
+                                                    <span>Identity Lock: {anchorsUsed}/14 Anchors Active</span>
+                                                </div>
+                                            )}
+
+                                            {/* 4K Master Download */}
+                                            <a
+                                                href={getDownloadUrl(
+                                                    getHighResSocialUrl(generatedImage, selectedPlatform),
+                                                    `LD_${selectedAgentData?.voice || "social"}_${selectedPlatform}_4K`
+                                                )}
+                                                download
+                                                className="block w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-lg text-sm font-medium text-white hover:from-violet-500 hover:to-fuchsia-500 transition-all text-center shadow-lg shadow-violet-500/25"
+                                            >
+                                                ⬇️ Download 4K Master
+                                            </a>
+
+                                            {/* Open Full Size */}
+                                            <a
+                                                href={generatedImage}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="block w-full py-2 bg-slate-700/50 rounded-lg text-sm text-slate-300 hover:bg-slate-700 transition-colors text-center"
+                                            >
+                                                🔗 Open Full Size
+                                            </a>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -421,12 +496,12 @@ export default function SocialStudioPage() {
                                         {/* Brand Fidelity Indicator */}
                                         {generatedImage && (
                                             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${anchorsUsed >= 10
-                                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                                    : anchorsUsed >= 5
-                                                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                                        : anchorsUsed > 0
-                                                            ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
-                                                            : "bg-slate-700 text-slate-400"
+                                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                                : anchorsUsed >= 5
+                                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                                    : anchorsUsed > 0
+                                                        ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                                                        : "bg-slate-700 text-slate-400"
                                                 }`}>
                                                 <span>🧬</span>
                                                 <span>Character Lock: {anchorsUsed}/14 Anchors</span>

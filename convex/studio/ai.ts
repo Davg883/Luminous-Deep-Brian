@@ -280,8 +280,23 @@ export const generateSocialPost = action({
         }
 
         // Voice mapping from agentId (passed as voice string from frontend for simplicity)
-        const agentVoice = args.agentId;
+        const agentVoice = args.agentId as "cassie" | "eleanor" | "julian";
         const agentName = agentVoice.charAt(0).toUpperCase() + agentVoice.slice(1);
+
+        // ═══════════════════════════════════════════════════════════════
+        // TASK 1: DNA-INJECTED RENDER - Fetch Visual Bible Anchors
+        // Query the media table for identity anchors for this agent
+        // ═══════════════════════════════════════════════════════════════
+
+        let identityAnchors: { slot: number | undefined; url: string; publicId?: string }[] = [];
+        try {
+            identityAnchors = await ctx.runQuery(internal.studio.mediaQueries.getIdentityAnchorsInternal, {
+                agent: agentVoice,
+            });
+            console.log(`[SOCIAL POST] DNA Lock: ${identityAnchors.length} anchors for ${agentName}`);
+        } catch (e) {
+            console.warn("[SOCIAL POST] Could not fetch identity anchors:", e);
+        }
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
@@ -328,9 +343,24 @@ export const generateSocialPost = action({
             neutral: "Professional brand voice: Confident, clear, inspiring."
         };
 
+        // DNA-INJECTED PROMPT: Character consistency notice
+        const dnaLockNotice = identityAnchors.length > 0
+            ? `
+        CHARACTER LOCK ACTIVE: ${identityAnchors.length}/14 DNA Anchors loaded for ${agentName}.
+        You are generating content for a character with strict visual and personality consistency.
+        The character ${agentName} has defined reference images across ${identityAnchors.length} identity slots.
+        Ensure all descriptions maintain absolute consistency with:
+        - Julian: Charcoal wool Gansey sweater, silver-framed glasses, salt-and-pepper beard
+        - Eleanor: Soft linen clothing, warm golden tones, literary aesthetic
+        - Cassie: Workshop attire, tools, energetic poses, tungsten light
+        `
+            : "";
+
         const systemInstruction = `
         INSTRUCTION: You are a Social Media Content Generator for Luminous Deep.
         Generate platform-optimised social media copy for ${args.platform}.
+
+        ${dnaLockNotice}
 
         VOICE CONTEXT:
         ${voicePersonas[agentVoice] || voicePersonas.neutral}
@@ -347,9 +377,10 @@ export const generateSocialPost = action({
         3. TONE: Professional British brand voice. Avoid American slang.
 
         OUTPUT FORMAT:
-        Return a JSON object with a single key "copy" containing the generated post text.
+        Return a JSON object with the following keys:
         {
-            "copy": "Your generated post text here..."
+            "copy": "Your generated post text here...",
+            "dnaAnchorsUsed": ${identityAnchors.length}
         }
         `;
 
@@ -368,11 +399,14 @@ export const generateSocialPost = action({
             const match = text.match(/\{[\s\S]*\}/);
             if (match) {
                 const parsed = JSON.parse(match[0]);
-                return { copy: parsed.copy || "" };
+                return {
+                    copy: parsed.copy || "",
+                    dnaAnchorsUsed: identityAnchors.length
+                };
             }
 
             // Fallback: treat entire response as copy
-            return { copy: text.trim() };
+            return { copy: text.trim(), dnaAnchorsUsed: identityAnchors.length };
         } catch (error: any) {
             console.error(`Social Post Generation Error:`, error);
             throw new Error(`Failed to generate social post: ${error.message}`);
