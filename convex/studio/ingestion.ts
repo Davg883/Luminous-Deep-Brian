@@ -4,8 +4,11 @@ import { v } from "convex/values";
 import { action } from "../_generated/server";
 import { requireStudioAccessAction } from "../auth/helpers";
 import { internal } from "../_generated/api";
-import { v2 as cloudinary } from "cloudinary";
+import cloudinaryPkg from "cloudinary";
 import crypto from "crypto";
+
+// Extract v2 from the default export
+const cloudinary = cloudinaryPkg.v2;
 
 type AgentIdentity = "julian" | "eleanor" | "cassie" | "unknown";
 type AssetRole = "portrait" | "technical_setting" | "mood_piece" | "hands" | "wardrobe" | "environment" | "props" | "unknown";
@@ -143,6 +146,23 @@ export const smartAgenticUpload = action({
         overrideSlot: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
+        // ═══════════════════════════════════════════════════════════════
+        // STEP 0: CONFIGURE CLOUDINARY IMMEDIATELY (before anything else)
+        // This prevents 'reading config' errors
+        // ═══════════════════════════════════════════════════════════════
+
+        if (!process.env.CLOUDINARY_API_KEY) {
+            throw new Error("CLOUDINARY_API_KEY is not defined in the environment.");
+        }
+
+        cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET,
+            secure: true
+        });
+
+        // Now proceed with authentication
         await requireStudioAccessAction(ctx);
 
         const logs: string[] = [];
@@ -152,42 +172,21 @@ export const smartAgenticUpload = action({
             console.log(entry);
         };
 
-        // ═══════════════════════════════════════════════════════════════
-        // TASK 1: HARDENED CONFIGURATION VALIDATION
-        // Verify all required environment variables before any operations
-        // ═══════════════════════════════════════════════════════════════
+        log("SYSTEM", "Cloudinary SDK initialized.");
 
-        log("SYSTEM", "Initializing Smart Ingest pipeline...");
-
-        // 1. Validate Google API Key for Gemini Vision
+        // Validate remaining environment variables
         const googleApiKey = process.env.GOOGLE_API_KEY;
         if (!googleApiKey) {
             log("SYSTEM", "✗ Configuration check failed: GOOGLE_API_KEY missing");
             throw new Error("GOOGLE_API_KEY is required for Vision analysis. Verify Convex Environment Variables.");
         }
 
-        // 2. Validate Cloudinary credentials
-        const cloudinaryCloud = process.env.CLOUDINARY_CLOUD_NAME;
-        const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY;
-        const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
+        // Store Cloudinary credentials for later use (already validated at start)
+        const cloudinaryCloud = process.env.CLOUDINARY_CLOUD_NAME!;
+        const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY!;
+        const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET!;
 
-        if (!cloudinaryCloud || !cloudinaryApiKey || !cloudinaryApiSecret) {
-            log("SYSTEM", "✗ Configuration check failed: Cloudinary credentials incomplete");
-            log("SYSTEM", `  CLOUD_NAME: ${cloudinaryCloud ? "✓" : "✗"}`);
-            log("SYSTEM", `  API_KEY: ${cloudinaryApiKey ? "✓" : "✗"}`);
-            log("SYSTEM", `  API_SECRET: ${cloudinaryApiSecret ? "✓" : "✗"}`);
-            throw new Error("Cloudinary configuration missing. Verify Convex Environment Variables.");
-        }
-
-        // 3. Configure Cloudinary SDK (using static import)
-        cloudinary.config({
-            cloud_name: cloudinaryCloud,
-            api_key: cloudinaryApiKey,
-            api_secret: cloudinaryApiSecret,
-            secure: true,
-        });
-
-        log("SYSTEM", "✓ Configuration validated. All credentials present.");
+        log("SYSTEM", "✓ All configuration validated. Starting ingest pipeline...");
 
         const timestamp = Date.now();
 
