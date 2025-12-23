@@ -29,7 +29,7 @@ type Tab = "Library" | "Strategy" | "Write" | "Scenes";
 
 export default function ContentFactoryPage() {
     const packs = useQuery(api.studio.content.listPacks);
-    const unifiedContent = useQuery(api.studio.content.listUnifiedContent);
+    const unifiedContent = useQuery(api.studio.unified.listUnifiedContent);
     const scenes = useQuery(api.studio.scenes.getAllScenes);
 
     const importPack = useMutation(api.studio.content.importPack);
