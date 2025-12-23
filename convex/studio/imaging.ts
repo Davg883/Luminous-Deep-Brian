@@ -298,37 +298,73 @@ async function generateWithImagen3(
     prompt: string,
     args: { agentVoice: string; sceneSlug: string; aspectRatio?: string }
 ): Promise<string> {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            instances: [{ prompt }],
-            parameters: {
-                sampleCount: 1,
-                aspectRatio: args.aspectRatio || "9:16",
-                safetyFilterLevel: "BLOCK_MEDIUM_AND_ABOVE",
+    console.log("[IMAGEN 3] Starting Imagen 3 generation...");
+    console.log("[IMAGEN 3] Prompt:", prompt.substring(0, 200) + "...");
+    console.log("[IMAGEN 3] Agent:", args.agentVoice);
+    console.log("[IMAGEN 3] Aspect Ratio:", args.aspectRatio || "9:16");
+
+    try {
+        // Use the correct Imagen 3 model: imagen-3.0-generate-001
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                instances: [{ prompt }],
+                parameters: {
+                    sampleCount: 1,
+                    aspectRatio: args.aspectRatio || "9:16",
+                    safetyFilterLevel: "BLOCK_MEDIUM_AND_ABOVE",
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[IMAGEN 3] API Error Status:", response.status);
+            console.error("[IMAGEN 3] API Error Response:", errorText);
+
+            // Check for specific error codes
+            if (response.status === 404) {
+                throw new Error("Google Imagen Model not found. Check API Key permissions or model availability in your region.");
+            } else if (response.status === 403) {
+                throw new Error("Access denied to Imagen API. Ensure your API key has Imagen permissions enabled in Google Cloud Console.");
+            } else if (response.status === 429) {
+                throw new Error("Imagen API quota exceeded. Wait a moment and try again, or check your billing status.");
+            } else if (response.status === 400) {
+                throw new Error(`Imagen API rejected the request: ${errorText}`);
             }
-        })
-    });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Imagen 3 API Error: ${response.status} - ${errorText}`);
+            throw new Error(`Imagen 3 API Error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log("[IMAGEN 3] Response received, checking for image data...");
+
+        const imageBase64 = data.predictions?.[0]?.bytesBase64Encoded;
+
+        if (!imageBase64) {
+            console.error("[IMAGEN 3] No image data in response:", JSON.stringify(data, null, 2).substring(0, 500));
+            throw new Error("No image data returned from Imagen 3 API. The model may have filtered the content.");
+        }
+
+        console.log("[IMAGEN 3] Image generated successfully! Uploading to Cloudinary...");
+        return await uploadToCloudinaryWithMetadata(
+            imageBase64,
+            args.agentVoice,
+            args.sceneSlug,
+            args.aspectRatio || "9:16"
+        );
+
+    } catch (e: any) {
+        console.error("IMAGEN ERROR DETAILED:", e);
+        console.error("[IMAGEN 3] Stack trace:", e.stack);
+
+        // Re-throw with a cleaner message for the frontend
+        if (e.message.includes("not found") || e.message.includes("404")) {
+            throw new Error("Google Imagen Model not found. Check API Key permissions.");
+        }
+        throw e;
     }
-
-    const data = await response.json();
-    const imageBase64 = data.predictions?.[0]?.bytesBase64Encoded;
-
-    if (!imageBase64) {
-        throw new Error("No image data returned from Imagen 3 API");
-    }
-
-    return await uploadToCloudinaryWithMetadata(
-        imageBase64,
-        args.agentVoice,
-        args.sceneSlug,
-        args.aspectRatio || "9:16"
-    );
 }
 
 // ═══════════════════════════════════════════════════════════════
