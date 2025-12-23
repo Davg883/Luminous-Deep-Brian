@@ -180,7 +180,7 @@ export default function ContentFactoryPage() {
     const reassignRevealSpace = useMutation(api.studio.content.reassignRevealSpace);
     const triggerReindex = useAction((api.studio.rag as any).triggerReindex);
     const generateAndUploadImage = useAction(api.studio.imaging.generateAndUploadImage);
-    const updateReveal = useMutation(api.studio.content.updateReveal);
+    const updateReveal = useMutation((api.studio.content as any).updateReveal);
 
     const router = useRouter();
 
