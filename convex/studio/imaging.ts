@@ -78,9 +78,9 @@ async function nanoBananaProCore(
     console.log("[NANO BANANA PRO] Prompt:", visualPrompt.substring(0, 300) + "...");
 
     try {
-        // Use Gemini 2.0 Flash Experimental for native image generation
+        // Use Gemini 3 Pro Image Preview (Nano Banana Pro) for native image generation
         // This model supports responseModalities: ["IMAGE"]
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

@@ -44,7 +44,7 @@ export const generateContent = action({
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             generationConfig: { responseMimeType: "application/json" }
         });
 
@@ -300,7 +300,7 @@ export const generateSocialPost = action({
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             generationConfig: { responseMimeType: "application/json" }
         });
 
