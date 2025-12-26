@@ -64,9 +64,8 @@ export default function GlitchGate({ content, isLocked, glitchPoint }: GlitchGat
                         <h3 className="text-xl font-mono font-bold text-rose-500 tracking-widest mb-2">SIGNAL LOST</h3>
                         <p className="text-stone-500 text-xs font-mono mb-6 uppercase tracking-wider">Transmission Interrupted</p>
 
-                        <button className="w-full py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white font-mono text-sm tracking-widest uppercase rounded flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_20px_rgba(225,29,72,0.4)]">
-                            <Lock className="w-4 h-4" />
-                            Restore Feed (£0.99)
+                        <button className="w-full py-3 px-4 bg-rose-950/50 border border-rose-500 text-rose-400 font-mono text-xs tracking-widest uppercase rounded flex items-center justify-center gap-2 hover:bg-rose-900/80 hover:shadow-[0_0_15px_rgba(244,63,94,0.4)] transition-all animate-pulse">
+                            [ RESTORE FEED // £0.99 ]
                         </button>
                     </motion.div>
                 </div>
