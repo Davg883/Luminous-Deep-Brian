@@ -53,7 +53,9 @@ export const updateScene = mutation({
             v.literal("home"),
             v.literal("lounge"),
             v.literal("kitchen"),
-            v.literal("luminous-deep")
+            v.literal("luminous-deep"),
+            v.literal("orangery"),
+            v.literal("sanctuary")
         ),
         shouldLoop: v.optional(v.boolean()),
         ambientAudioUrl: v.optional(v.string()),
