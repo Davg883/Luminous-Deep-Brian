@@ -12,13 +12,17 @@ const Threshold = () => {
     const [isCalibrating, setIsCalibrating] = useState(false);
     const router = useRouter();
 
+    const videoRef = React.useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        if (sequence === 'warping' && videoRef.current) {
+            videoRef.current.currentTime = 0;
+            videoRef.current.play().catch(e => console.log("Autoplay blocked:", e));
+        }
+    }, [sequence]);
+
     const handleEnter = () => {
         setSequence('warping');
-
-        // Timing the transition to "Arrived"
-        setTimeout(() => {
-            setSequence('arrived');
-        }, 2500); // 2.5 seconds of warp speed
     };
 
     const handleCalibration = (e: React.FormEvent) => {
@@ -34,25 +38,23 @@ const Threshold = () => {
         <div className="relative w-full h-screen overflow-hidden bg-stone-950 text-white font-serif selection:bg-rose-500/30">
 
             {/* --- VIDEO LAYER (The Transition) --- */}
-            {sequence !== 'idle' && (
-                <div className="absolute inset-0 z-0">
-                    <video
-                        autoPlay
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover"
-                        onEnded={(e) => {
-                            // Video ends on the sanctuary view, we just hold the frame
-                            // Consider pausing to be safe, though most browsers hold last frame by default
-                            e.currentTarget.pause();
-                        }}
-                    >
-                        <source src="https://res.cloudinary.com/dptqxjhb8/video/upload/v1766751962/Inspiring_Sanctuary_Transition_Video_byjxoq.mp4" type="video/mp4" />
-                    </video>
-                    {/* Inner Atmosphere Layer for text readability */}
-                    <div className="absolute inset-0 bg-stone-950/20 backdrop-saturate-150" />
-                </div>
-            )}
+            <div className={`absolute inset-0 z-0 transition-opacity duration-1000 ${sequence === 'idle' ? 'opacity-0' : 'opacity-100'}`}>
+                <video
+                    ref={videoRef}
+                    muted
+                    playsInline
+                    preload="auto"
+                    className="w-full h-full object-cover"
+                    onEnded={(e) => {
+                        setSequence('arrived');
+                        e.currentTarget.pause();
+                    }}
+                >
+                    <source src="https://res.cloudinary.com/dptqxjhb8/video/upload/v1766751962/Inspiring_Sanctuary_Transition_Video_byjxoq.mp4" type="video/mp4" />
+                </video>
+                {/* Inner Atmosphere Layer for text readability */}
+                <div className="absolute inset-0 bg-stone-950/20 backdrop-saturate-150" />
+            </div>
 
             {/* --- LAYER 1: REALITY (The Archway) - Fades out --- */}
             <div
