@@ -646,3 +646,46 @@ export const seedExpansion = mutation({
     }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// THEA LUX PROTOCOL: SEASON ZERO
+// ═══════════════════════════════════════════════════════════════
+export const seedSeasonZero = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const signalData = {
+            title: "Transmission 001: The Static",
+            slug: "001-the-static",
+            season: 0,
+            episode: 1,
+            // Long form content
+            content: `
+<p>They told me the bunker was empty when I bought it. They lied. The first night, the monitors turned themselves on. Not with data, but with noise. I realized then that I wasn't here to hide. I was here to witness.</p>
+<p>The air in Seaview smells of salt and rust, but in here, it smells of ozone and old dust burning on vacuum tubes. I found a logbook under the floorboards of the main console. It's dated 1984. The handwriting is frantic, pressing so hard into the page that the paper is torn in places.</p>
+<p>"The signal isn't coming from the sky," it reads. "It's coming from the tides."</p>
+<p>I set up the hydrophones yesterday. Dropped them right off the end of the pier where the water turns that deep, bruised purple. At first, nothing. Just the biological churn of the ocean. Shrimp clicking, whales singing in the deep channel. But then, at 03:00, it started.</p>
+<p>A rhythm. Three short, three long, three short. SOS? No. It was too fast, too complex. It sounded like... code compilation. Like a modem handshake screaming through fifty fathoms of water.</p>
+<p>I tried to record it, but my equipment fried. The VU meters pegged red and stayed there until the needles snapped. That's when I saw her. A woman, standing at the edge of the water. She wasn't wet. She wasn't looking at the sea. She was looking at the house. She was looking at me.</p>
+<p>I blinked, and she was gone.</p>
+            `,
+            isLocked: true,
+            glitchPoint: 330, // Midway through the second paragraph
+            publishedAt: Date.now(),
+        };
+
+        const existing = await ctx.db
+            .query("signals")
+            .withIndex("by_slug", (q: any) => q.eq("slug", signalData.slug))
+            .first();
+
+        if (existing) {
+            await ctx.db.patch(existing._id, signalData);
+            console.log("Updated Signal 001");
+        } else {
+            await ctx.db.insert("signals", signalData);
+            console.log("Seeded Signal 001");
+        }
+
+        return "Seeded Thea Lux Protocol: Signal 001";
+    },
+});
+

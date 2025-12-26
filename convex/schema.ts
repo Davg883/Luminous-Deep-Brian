@@ -210,6 +210,18 @@ export default defineSchema({
         status: v.union(v.literal("draft"), v.literal("published")),
     }).index("by_slug", ["slug"]),
 
+    signals: defineTable({
+        title: v.string(),            // e.g., "Transmission 001: The Bunker"
+        slug: v.string(),             // e.g., "001-the-bunker"
+        season: v.number(),           // 0
+        episode: v.number(),          // 1
+        content: v.string(),          // The full markdown text
+        isLocked: v.boolean(),        // True if paywalled
+        glitchPoint: v.optional(v.number()), // Character index where text corrupts (if locked)
+        publishedAt: v.number(),
+    }).index("by_season_episode", ["season", "episode"])
+        .index("by_slug", ["slug"]),
+
     contentPacks: defineTable({
         hotspotId: v.string(),
         domain: v.string(),
