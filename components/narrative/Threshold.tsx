@@ -51,7 +51,7 @@ const Threshold = () => {
                         e.currentTarget.pause();
                     }}
                 >
-                    <source src="https://res.cloudinary.com/dptqxjhb8/video/upload/v1766751962/Inspiring_Sanctuary_Transition_Video_byjxoq.mp4" type="video/mp4" />
+                    <source src="https://res.cloudinary.com/dptqxjhb8/video/upload/v1766751962/luminous-deep-threshold-transition.mp4" type="video/mp4" />
                 </video>
                 {/* Inner Atmosphere Layer for text readability */}
                 <div className="absolute inset-0 bg-stone-950/20 backdrop-saturate-150" />
