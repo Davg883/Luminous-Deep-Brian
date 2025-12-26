@@ -44,12 +44,9 @@ export default function LibraryIndexPage() {
                 ) : (
                     <div className="grid gap-4">
                         {signals.map((signal) => (
-                            <div
+                            <Link
                                 key={signal._id}
-                                onClick={() => {
-                                    console.log("Navigating to:", `/sanctuary/library/reader/${signal.slug}`);
-                                    router.push(`/sanctuary/library/reader/${signal.slug}`);
-                                }}
+                                href={signal.slug ? `/sanctuary/library/reader/${signal.slug}` : '#'}
                                 className="group relative flex items-center gap-6 p-6 rounded-xl bg-stone-900/30 border border-white/5 hover:border-emerald-500/30 hover:bg-stone-900/50 transition-all cursor-pointer overflow-hidden block"
                             >
                                 {/* Hover Glow */}
@@ -70,13 +67,17 @@ export default function LibraryIndexPage() {
                                             {new Date(signal.publishedAt).toLocaleDateString()}
                                         </span>
                                         <span className="text-[9px] text-stone-700 font-mono lowercase">
-                                            /{signal.slug}
+                                            /{signal.slug || "MISSING_SLUG"}
                                         </span>
                                         {signal.isLocked && (
                                             <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-mono text-rose-900/80 bg-rose-900/10 px-1.5 py-0.5 rounded border border-rose-900/20">
                                                 <Lock className="w-3 h-3" /> Encrypted
                                             </span>
                                         )}
+                                    </div>
+                                    {/* Debug Data */}
+                                    <div className="mt-2 p-2 bg-black/50 rounded border border-stone-800 text-[9px] font-mono text-stone-500 overflow-hidden">
+                                        DEBUG: {signal.slug} | {signal._id}
                                     </div>
                                 </div>
 
