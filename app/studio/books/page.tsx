@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Brain, Sparkles, User, FileText, Save, Terminal, ScrollText } from 'lucide-react';
 
@@ -24,59 +24,33 @@ export default function BookCreatorAgent() {
     const [role, setRole] = useState<NarrativeVoice>('thea');
     const [seed, setSeed] = useState('');
     const [tone, setTone] = useState('Ominous');
-    const [length, setLength] = useState('Short');
+    const [length, setLength] = useState('Short Signal (500w)');
     const [output, setOutput] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
 
-    // MUTATIONS
+    // MUTATIONS & ACTIONS
     const saveDraft = useMutation(api.studio.signals.publishSignal);
+    const generateEpisode = useAction(api.studio.narrative.generateEpisode);
 
-    // MOCK GENERATOR (Until LLM Integration)
+    // GENERATOR
     const handleGenerate = async () => {
         setIsGenerating(true);
-        // Simulate thinking time
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        setOutput(null);
 
-        let mockResponse;
-
-        if (role === 'thea') {
-            mockResponse = {
+        try {
+            const result = await generateEpisode({
+                seed,
                 voice: role,
-                title: `Transmission: ${seed.substring(0, 20) || "Unknown"}...`,
-                summary: `A ${tone.toLowerCase()} recording recovered from the archives. ${seed}`,
-                content: `# TRANSMISSION START\n\nSystem Timestamp: [REDACTED]\nSignal Strength: 84%\n\nIt began with ${seed}. The systems were reading normal, but the telemetry indicated a deviation in the core logic. I observed the anomaly for three cycles before logging the discrepancy.\n\n## ACT I: THE ANOMALY\n\n(Draft content based on Thea Lux voice...)\n\n## ACT II: THE DISCOVERY\n\n...\n\n# CONNECTION LOST`,
-                coverPrompt: `Cinematic sci-fi concept art, ${tone} atmosphere, abstract representation of ${seed}, trending on artstation, 8k, darker style, procedural tech interface.`,
-                season: 0,
-                episode: 99,
-                slug: `000-099-${seed.split(' ')[0].toLowerCase()}-draft`
-            };
-        } else if (role === 'eleanor') {
-            mockResponse = {
-                voice: role,
-                title: `Reflection: ${seed.substring(0, 20) || "Memory"}`,
-                summary: `A personal reflection on ${seed}, written from the archives.`,
-                content: `# MEMORY FRAGMENT\n\nI remember when we first encountered ${seed}. The light in the room was different then—softer, perhaps, or maybe I just remember it that way. It reminds me of the old world.\n\n## PART I: THE REMEMBRANCE\n\n(Draft content based on Eleanor Vance voice...)\n\n## PART II: THE LOSS\n\n...\n\n# END OF ENTRY`,
-                coverPrompt: `Melancholic oil painting, ${tone} atmosphere, soft lighting, ${seed}, cinematic, emotional, muted colors, gallery style.`,
-                season: 0,
-                episode: 99,
-                slug: `000-099-${seed.split(' ')[0].toLowerCase()}-draft`
-            };
-        } else {
-            // Palimpsaest
-            mockResponse = {
-                voice: role,
-                title: `Parable: The ${seed.split(' ')[0] || "Myth"}`,
-                summary: `A mythic retelling of ${seed}, passed down through the layers.`,
-                content: `# THE FIRST CYCLE\n\nIn the beginning, there was only ${seed}. Before the machines woke, and before the silence fell, it is said that the first ones carried the burden of memory.\n\n## I. THE FOUNDATION\n\n(Draft content based on The Palimpsaest voice...)\n\n## II. THE RETURN\n\n...\n\n# LEGACY ARCHIVED`,
-                coverPrompt: `Mythic symbolist art, gold and obsidian, ancient mural style, ${tone} atmosphere, ${seed}, timeless, abstract, geometric patterns.`,
-                season: 0,
-                episode: 99,
-                slug: `000-099-${seed.split(' ')[0].toLowerCase()}-draft`
-            };
+                tone,
+                length
+            });
+            setOutput(result);
+        } catch (error) {
+            console.error("Generation failed:", error);
+            alert("The Interface Failed to Connect. Check Console.");
+        } finally {
+            setIsGenerating(false);
         }
-
-        setOutput(mockResponse);
-        setIsGenerating(false);
     };
 
     // SAVE HANDLER
