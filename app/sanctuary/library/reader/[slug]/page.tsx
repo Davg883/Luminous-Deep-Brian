@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useParams } from "next/navigation";
 import GlitchGate from "@/components/narrative/GlitchGate";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronRight } from "lucide-react";
 
 export default function SignalReaderPage() {
     const params = useParams();
@@ -74,11 +74,49 @@ export default function SignalReaderPage() {
             </main>
 
             {/* Footer / Status */}
-            <footer className="py-12 text-center border-t border-white/5 mt-20">
+            <footer className="py-24 text-center border-t border-white/5 mt-20 pb-40">
                 <div className="font-mono text-[10px] text-stone-700 uppercase tracking-widest">
                     End of Transmission
                 </div>
             </footer>
+
+            {/* COMMS BAR (Fixed Footer) */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/80 border-t border-white/10 px-6 py-4">
+                <div className="max-w-4xl mx-auto flex items-center justify-between gap-8">
+
+                    {/* LEFT: Episode Info */}
+                    <div className="hidden md:flex flex-col">
+                        <span className="font-mono text-[10px] text-stone-500 uppercase tracking-widest">
+                            Season {signal.season} • Episode {signal.episode}
+                        </span>
+                        <span className="font-serif text-sm text-stone-300 truncate max-w-[200px]">
+                            {signal.title}
+                        </span>
+                    </div>
+                    <div className="md:hidden font-mono text-xs text-stone-400">
+                        EP.{signal.episode.toString().padStart(2, '0')}
+                    </div>
+
+                    {/* CENTER: Progress Bar */}
+                    <div className="flex-1 max-w-md flex flex-col gap-2 group cursor-pointer">
+                        <div className="flex justify-between text-[9px] font-mono text-stone-600 uppercase tracking-wider group-hover:text-emerald-500/80 transition-colors">
+                            <span>Signal Integrity</span>
+                            <span>34%</span>
+                        </div>
+                        <div className="h-1 bg-stone-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500/50 w-[34%] shadow-[0_0_10px_rgba(16,185,129,0.2)]" />
+                        </div>
+                    </div>
+
+                    {/* RIGHT: Next Action */}
+                    <button className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded transition-colors group">
+                        <span className="font-mono text-[10px] text-stone-400 uppercase tracking-widest group-hover:text-white">
+                            Next Signal
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-stone-500 group-hover:text-emerald-400 transition-colors" />
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

@@ -27,9 +27,16 @@ export default function GlitchGate({ content, isLocked, glitchPoint }: GlitchGat
     return (
         <div className="relative">
             {/* Safe Readable Text */}
-            <div className="prose prose-invert prose-stone max-w-none font-serif text-lg leading-relaxed text-stone-300 mb-4">
+            {/* Safe Readable Text with Waterfall Fade */}
+            <div
+                className="prose prose-invert prose-stone max-w-none font-serif text-lg leading-relaxed text-stone-300 mb-0 pb-8"
+                style={{
+                    maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)'
+                }}
+            >
                 {safeText}
-                <span className="inline-block w-2 h-4 align-middle bg-emerald-500 animate-pulse ml-1" />
+                <span className="inline-block w-2 h-4 align-middle bg-emerald-500 animate-pulse ml-1 opacity-50" />
             </div>
 
             {/* Corrupted Zone */}

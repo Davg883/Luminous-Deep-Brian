@@ -219,8 +219,23 @@ export default defineSchema({
         isLocked: v.boolean(),        // True if paywalled
         glitchPoint: v.optional(v.number()), // Character index where text corrupts (if locked)
         publishedAt: v.number(),
+        // Phase 1 Upgrade: Progressive Disclosure Fields
+        subtitle: v.optional(v.string()),
+        coverImage: v.optional(v.string()), // URL
+        summaryShort: v.optional(v.string()), // For card
+        summaryLong: v.optional(v.string()), // For detail view
+        duration: v.optional(v.string()), // e.g. '18 min read' (Changed to optional to prevent migration failure for existing records, though prompt says v.string(), safer to be optional initially or default, but seeding will fix it.)
+        releaseDate: v.optional(v.number()),
     }).index("by_season_episode", ["season", "episode"])
         .index("by_slug", ["slug"]),
+
+    user_progress: defineTable({
+        userId: v.string(), // Clerk ID or similar
+        signalId: v.id("signals"),
+        progress: v.number(), // 0-100
+        isCompleted: v.boolean(),
+        lastReadAt: v.number(),
+    }).index("by_user_signal", ["userId", "signalId"]),
 
     contentPacks: defineTable({
         hotspotId: v.string(),
