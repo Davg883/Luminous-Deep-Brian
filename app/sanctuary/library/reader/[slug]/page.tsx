@@ -6,10 +6,8 @@ import { useParams } from "next/navigation";
 import GlitchGate from "@/components/narrative/GlitchGate";
 import { Loader2 } from "lucide-react";
 
-export default function SignalReaderPage() {
-    const params = useParams();
-    const slug = params?.slug as string;
-
+export default function SignalReaderPage({ params }: { params: { slug: string } }) {
+    const slug = params.slug;
     const signal = useQuery(api.public.signals.getSignal, { slug });
 
     if (signal === undefined) {
@@ -26,9 +24,15 @@ export default function SignalReaderPage() {
     if (signal === null) {
         return (
             <div className="min-h-screen bg-stone-950 flex items-center justify-center text-stone-600">
-                <div className="text-center font-mono space-y-2">
+                <div className="text-center font-mono space-y-4">
                     <div className="text-4xl">404</div>
-                    <div className="text-xs uppercase tracking-[0.2em]">Signal Not Found</div>
+                    <div className="text-xs uppercase tracking-[0.2em]">Signal Lost</div>
+                    <div className="text-[10px] bg-stone-900 p-2 rounded text-stone-500">
+                        Target: {slug}
+                    </div>
+                    <a href="/sanctuary/library/reader" className="text-xs text-emerald-600 hover:text-emerald-500 underline">
+                        Return to Archive
+                    </a>
                 </div>
             </div>
         );
