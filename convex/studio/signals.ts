@@ -60,3 +60,22 @@ export const deleteSignal = mutation({
         await ctx.db.delete(args.id);
     },
 });
+
+export const repairSlugs = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const signals = await ctx.db.query("signals").collect();
+        let count = 0;
+
+        for (const signal of signals) {
+            if (!signal.slug) {
+                const saneTitle = signal.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                const newSlug = `${signal.season.toString().padStart(3, '0')}-${signal.episode.toString().padStart(3, '0')}-${saneTitle}`;
+
+                await ctx.db.patch(signal._id, { slug: newSlug });
+                count++;
+            }
+        }
+        return `Repaired ${count} signals with missing slugs.`;
+    },
+});
