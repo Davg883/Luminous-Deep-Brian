@@ -14,15 +14,15 @@ const Threshold = () => {
 
     const videoRef = React.useRef<HTMLVideoElement>(null);
 
-    useEffect(() => {
-        if (sequence === 'warping' && videoRef.current) {
-            videoRef.current.currentTime = 0;
-            videoRef.current.play().catch(e => console.log("Autoplay blocked:", e));
-        }
-    }, [sequence]);
+    // Removed useEffect to prevent autoplay blocks. We trigger play() directly on click.
 
     const handleEnter = () => {
         setSequence('warping');
+
+        if (videoRef.current) {
+            videoRef.current.currentTime = 0;
+            videoRef.current.play().catch(e => console.error("Play failed:", e));
+        }
     };
 
     const handleCalibration = (e: React.FormEvent) => {
@@ -30,7 +30,7 @@ const Threshold = () => {
         setIsCalibrating(true);
         setTimeout(() => {
             console.log("Routing to Personal Sanctuary...");
-            // router.push('/sanctuary'); // TODO: Define the destination route
+            router.push('/sanctuary');
         }, 2000);
     };
 
@@ -38,7 +38,8 @@ const Threshold = () => {
         <div className="relative w-full h-screen overflow-hidden bg-stone-950 text-white font-serif selection:bg-rose-500/30">
 
             {/* --- VIDEO LAYER (The Transition) --- */}
-            <div className={`absolute inset-0 z-0 transition-opacity duration-1000 ${sequence === 'idle' ? 'opacity-0' : 'opacity-100'}`}>
+            {/* Z-INDEX UPDATE: z-20 to ensure it covers the static layers when active */}
+            <div className={`absolute inset-0 z-20 transition-opacity duration-1000 ${sequence === 'idle' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                 <video
                     ref={videoRef}
                     muted
