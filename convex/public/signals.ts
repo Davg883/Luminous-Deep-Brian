@@ -10,3 +10,14 @@ export const getSignal = query({
             .first();
     },
 });
+
+export const listSignals = query({
+    handler: async (ctx) => {
+        // Fetch all signals (assuming public ones are all "published" for now, or filter by publishedAt)
+        return await ctx.db
+            .query("signals")
+            .withIndex("by_season_episode")
+            .order("desc") // Newest episodes first
+            .collect();
+    },
+});

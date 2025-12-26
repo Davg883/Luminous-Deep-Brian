@@ -689,3 +689,44 @@ export const seedSeasonZero = mutation({
     },
 });
 
+// ═══════════════════════════════════════════════════════════════
+// CONNECTIVITY: SIGNAL RECEIVER IN STUDY
+// ═══════════════════════════════════════════════════════════════
+export const addRadioToStudy = mutation({
+    args: {},
+    handler: async (ctx) => {
+        // Find the Study scene
+        const study = await ctx.db
+            .query("scenes")
+            .withIndex("by_slug", (q: any) => q.eq("slug", "study"))
+            .first();
+
+        if (!study) {
+            return "Study not found";
+        }
+
+        // Check if radio exists
+        const existingObjects = await ctx.db
+            .query("objects")
+            .withIndex("by_scene", (q: any) => q.eq("sceneId", study._id))
+            .collect();
+
+        const existingRadio = existingObjects.find(obj => obj.name === "Vintage Radio");
+        if (existingRadio) {
+            return "Radio already exists in Study";
+        }
+
+        // Add Radio
+        await ctx.db.insert("objects", {
+            sceneId: study._id,
+            name: "Vintage Radio",
+            x: 25,
+            y: 55,
+            hint: "Tune in",
+            role: "library", // New role for triggering the SignalReceiver UI
+        });
+
+        return "Seeded Vintage Radio in Study";
+    }
+});
+

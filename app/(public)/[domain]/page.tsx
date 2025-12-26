@@ -13,6 +13,7 @@ import Atmosphere from "@/components/layout/Atmosphere";
 import SanctuaryCompass from "@/components/layout/SanctuaryCompass";
 import EdgeNav from "@/components/narrative/EdgeNav";
 import { SanctuaryTerminal } from "@/components/narrative/SanctuaryTerminal";
+import SignalReceiver from "@/components/narrative/SignalReceiver"; // New import
 import type { Domain } from "@/lib/types";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -61,6 +62,7 @@ export default function DomainPage() {
     // Interactive State
     const [activeRevealId, setActiveRevealId] = useState<Id<"reveals"> | null>(null);
     const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+    const [isReceiverOpen, setIsReceiverOpen] = useState(false); // New state for SignalReceiver
 
     // Helper to fetch the active reveal details
     const activeReveal = useQuery(api.public.scenes.getReveal,
@@ -100,6 +102,12 @@ export default function DomainPage() {
 
     // Handle object click - either navigate (portal) or reveal content
     const handleObjectClick = (obj: any) => {
+        // Special Roles
+        if (obj.role === "library") {
+            setIsReceiverOpen(true);
+            return;
+        }
+
         // Check if this is a transition/portal object with a destination
         if (obj.role === "transition" && obj.destinationSlug) {
             // Special Interception: The Sanctuary requires a rite of passage (Threshold)
@@ -153,6 +161,9 @@ export default function DomainPage() {
                 mediaUrl={activeReveal?.mediaUrl}
                 domain={validatedDomain}
             />
+
+            {/* Signal Receiver Modal */}
+            <SignalReceiver isOpen={isReceiverOpen} onClose={() => setIsReceiverOpen(false)} />
 
             {/* Terminal Hotspot (Study, Boathouse, Workshop) */}
             {["study", "boathouse", "workshop"].includes(validatedDomain) && (
