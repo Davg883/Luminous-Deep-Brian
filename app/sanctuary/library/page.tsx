@@ -29,58 +29,57 @@ export default function LibraryPage() {
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10" />
                 </div>
 
-                <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 py-20 grid grid-cols-1 md:grid-cols-12 gap-12 items-end">
+                <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 py-20 grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
 
-                    {/* LEFT: Key Art (Poster) */}
+                    {/* LEFT: Key Art (Poster) - The Bunker Image */}
                     <div className="md:col-span-4 lg:col-span-3">
-                        <div className="relative aspect-[2/3] w-full bg-stone-900 rounded shadow-2xl overflow-hidden border border-white/5 group">
-                            <div
-                                className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-105"
-                                style={{ backgroundImage: `url('https://res.cloudinary.com/dptqxjhb8/image/upload/v1766773735/The_Silent_Archive_mcpsr0.png')` }}
+                        <div className="relative aspect-[2/3] w-full max-w-[280px] bg-stone-900 rounded-lg shadow-2xl overflow-hidden border border-white/5 group mx-auto">
+                            <img
+                                src="https://res.cloudinary.com/dptqxjhb8/image/upload/v1766777168940.png"
+                                alt="The Truth Lies Buried"
+                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                         </div>
                     </div>
 
                     {/* RIGHT: Series Metadata (Text Only) */}
-                    <div className="md:col-span-8 lg:col-span-9 flex flex-col justify-end pb-4">
-                        <div className="p-8 md:p-12 bg-stone-900/40 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl">
+                    <div className="md:col-span-8 lg:col-span-9 flex flex-col justify-center">
 
-                            {/* Series Header */}
-                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 text-xs text-stone-500 font-mono uppercase tracking-widest">
-                                <span className="text-emerald-500">Season Zero: The Buried Protocol</span>
-                                <span>Sci-Fi</span>
-                                <span>Mystery</span>
-                                <span>1998-2026</span>
-                            </div>
-
-                            {/* Title (Text-based) */}
-                            <h1 className="text-5xl md:text-7xl font-serif text-white font-bold leading-[0.9] mb-8 tracking-tight drop-shadow-2xl">
-                                THE SILENT<br />ARCHIVE
-                            </h1>
-
-                            <p className="text-lg md:text-xl text-stone-400 max-w-2xl mb-10 leading-relaxed font-serif">
-                                Fiction recovered from a system that remembers too much. Eleanor enters a bunker she was told was empty, only to find the machines are still listening.
-                            </p>
-
-                            {/* Primary Action */}
-                            {heroSignal ? (
-                                <Link
-                                    href={`/sanctuary/library/reader/${heroSignal.slug}`}
-                                    className="inline-flex items-center gap-4 px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white text-base font-bold tracking-widest uppercase rounded shadow-[0_0_40px_rgba(16,185,129,0.3)] hover:shadow-[0_0_60px_rgba(16,185,129,0.5)] transition-all transform hover:-translate-y-1"
-                                >
-                                    <Play className="w-6 h-6 fill-current" />
-                                    {heroSignal.userProgress?.progress > 0
-                                        ? `Resume Episode ${heroSignal.episode}`
-                                        : `Play Episode ${heroSignal.episode}`
-                                    }
-                                </Link>
-                            ) : (
-                                <div className="inline-flex px-8 py-4 bg-stone-800 text-stone-500 rounded font-mono uppercase tracking-widest cursor-not-allowed">
-                                    Offline
-                                </div>
-                            )}
+                        {/* Series Header */}
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 text-xs text-stone-500 font-mono uppercase tracking-widest">
+                            <span className="text-emerald-500">Season Zero: The Buried Protocol</span>
+                            <span>Sci-Fi</span>
+                            <span>Mystery</span>
+                            <span>1998-2026</span>
                         </div>
+
+                        {/* Title (Text-based) */}
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif text-white font-bold leading-[0.9] mb-8 tracking-tight">
+                            THE SILENT ARCHIVE
+                        </h1>
+
+                        <p className="text-lg md:text-xl text-stone-400 max-w-2xl mb-10 leading-relaxed font-serif">
+                            Fiction recovered from a system that remembers too much. Eleanor enters a bunker she was told was empty, only to find the machines are still listening.
+                        </p>
+
+                        {/* Primary Action */}
+                        {heroSignal ? (
+                            <Link
+                                href={`/sanctuary/library/reader/${heroSignal.slug}`}
+                                className="inline-flex items-center gap-4 px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white text-base font-bold tracking-widest uppercase rounded shadow-[0_0_40px_rgba(16,185,129,0.3)] hover:shadow-[0_0_60px_rgba(16,185,129,0.5)] transition-all transform hover:-translate-y-1 w-fit"
+                            >
+                                <Play className="w-6 h-6 fill-current" />
+                                {heroSignal.userProgress?.progress > 0
+                                    ? `Resume Episode ${heroSignal.episode}`
+                                    : `Play Episode ${heroSignal.episode}`
+                                }
+                            </Link>
+                        ) : (
+                            <div className="inline-flex px-8 py-4 bg-stone-800 text-stone-500 rounded font-mono uppercase tracking-widest cursor-not-allowed w-fit">
+                                Offline
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
