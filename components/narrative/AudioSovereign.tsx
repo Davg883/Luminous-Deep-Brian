@@ -378,13 +378,13 @@ export function AudioSovereignControl() {
 
 // Custom Sound Wave Icon with CSS animation
 function SoundWaveIcon({ isPlaying, hasInteracted }: { isPlaying: boolean; hasInteracted: boolean }) {
-    // Bar heights at rest and animation delays
+    // Bar heights at rest and animation config
     const bars = [
-        { restHeight: 4, animHeight: 12, delay: '0ms' },
-        { restHeight: 6, animHeight: 16, delay: '100ms' },
-        { restHeight: 8, animHeight: 20, delay: '50ms' },
-        { restHeight: 6, animHeight: 16, delay: '150ms' },
-        { restHeight: 4, animHeight: 12, delay: '75ms' },
+        { restHeight: 4, animHeight: 14, delay: 0 },
+        { restHeight: 6, animHeight: 18, delay: 100 },
+        { restHeight: 8, animHeight: 20, delay: 50 },
+        { restHeight: 6, animHeight: 18, delay: 150 },
+        { restHeight: 4, animHeight: 14, delay: 75 },
     ];
 
     return (
@@ -393,22 +393,20 @@ function SoundWaveIcon({ isPlaying, hasInteracted }: { isPlaying: boolean; hasIn
                 <div
                     key={i}
                     className={clsx(
-                        "w-[2px] rounded-full",
-                        isPlaying ? "bg-cyan-400" : hasInteracted ? "bg-white/40" : "bg-white/60"
+                        "w-[2px] rounded-full transition-all duration-300",
+                        isPlaying
+                            ? "bg-cyan-400 animate-pulse"
+                            : hasInteracted
+                                ? "bg-white/40"
+                                : "bg-white/60"
                     )}
                     style={{
-                        height: isPlaying ? `${bar.animHeight}px` : `${bar.restHeight}px`,
-                        animation: isPlaying ? `soundwave 0.8s ease-in-out infinite` : 'none',
-                        animationDelay: bar.delay,
+                        height: `${isPlaying ? bar.animHeight : bar.restHeight}px`,
+                        animationDelay: `${bar.delay}ms`,
+                        transformOrigin: 'center',
                     }}
                 />
             ))}
-            <style jsx>{`
-                @keyframes soundwave {
-                    0%, 100% { transform: scaleY(0.5); }
-                    50% { transform: scaleY(1); }
-                }
-            `}</style>
         </div>
     );
 }
