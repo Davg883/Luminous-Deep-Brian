@@ -35,7 +35,7 @@ export default function LibraryPage() {
                     <div className="md:col-span-4 lg:col-span-3">
                         <div className="relative aspect-[2/3] w-full max-w-[280px] bg-stone-900 rounded-lg shadow-2xl overflow-hidden border border-white/5 group mx-auto">
                             <img
-                                src="https://res.cloudinary.com/dptqxjhb8/image/upload/v1766777168940.png"
+                                src={heroSignal?.coverImage || "https://res.cloudinary.com/dptqxjhb8/image/upload/v1735000000/default_cover_xk2m3n.jpg"}
                                 alt="The Truth Lies Buried"
                                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                             />
@@ -64,10 +64,11 @@ export default function LibraryPage() {
                                 Fiction recovered from a system that remembers too much. Eleanor enters a bunker she was told was empty, only to find the machines are still listening.
                             </p>
 
-                            {/* Primary Action */}
                             {heroSignal ? (
-                                <Link
+                                <a
                                     href={`/sanctuary/library/reader/${heroSignal.slug}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="inline-flex items-center gap-4 px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white text-base font-bold tracking-widest uppercase rounded shadow-[0_0_40px_rgba(16,185,129,0.3)] hover:shadow-[0_0_60px_rgba(16,185,129,0.5)] transition-all transform hover:-translate-y-1"
                                 >
                                     <Play className="w-6 h-6 fill-current" />
@@ -75,7 +76,7 @@ export default function LibraryPage() {
                                         ? `Resume Episode ${heroSignal.episode}`
                                         : `Play Episode ${heroSignal.episode}`
                                     }
-                                </Link>
+                                </a>
                             ) : (
                                 <div className="inline-flex px-8 py-4 bg-stone-800 text-stone-500 rounded font-mono uppercase tracking-widest cursor-not-allowed">
                                     Offline
