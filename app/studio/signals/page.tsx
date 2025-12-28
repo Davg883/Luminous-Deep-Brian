@@ -90,20 +90,34 @@ export default function SignalTransmitterPage() {
         }
     };
 
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
     const handleSave = async () => {
-        await publishSignal({
-            id: selectedId || undefined,
-            title,
-            slug,
-            season,
-            episode,
-            content,
-            isLocked,
-            glitchPoint,
-            coverImage: coverImage || undefined,
-            subtitle: subtitle || undefined,
-        });
-        setIsEditing(false);
+        setIsSaving(true);
+        setSaveMessage(null);
+        try {
+            await publishSignal({
+                id: selectedId || undefined,
+                title,
+                slug,
+                season,
+                episode,
+                content,
+                isLocked,
+                glitchPoint,
+                coverImage: coverImage || undefined,
+                subtitle: subtitle || undefined,
+            });
+            setSaveMessage("✓ Signal Broadcasted!");
+            setTimeout(() => setSaveMessage(null), 3000);
+            setIsEditing(false);
+        } catch (e) {
+            console.error("Save failed:", e);
+            setSaveMessage("✗ Failed to save");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleDelete = async (id: Id<"signals">) => {
@@ -188,12 +202,18 @@ export default function SignalTransmitterPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
+                            {saveMessage && (
+                                <span className={`text-xs font-mono ${saveMessage.startsWith('✓') ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {saveMessage}
+                                </span>
+                            )}
                             <button
                                 onClick={handleSave}
-                                className="flex items-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-bold uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                                disabled={isSaving}
+                                className="flex items-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 disabled:cursor-not-allowed text-white rounded-md text-xs font-bold uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                             >
                                 <Save className="w-4 h-4" />
-                                Broadcast
+                                {isSaving ? 'Saving...' : 'Broadcast'}
                             </button>
                         </div>
                     </div>
@@ -393,8 +413,8 @@ export default function SignalTransmitterPage() {
                         </div>
 
                     </div>
-                </div>
-            </main>
-        </div>
+                </div >
+            </main >
+        </div >
     );
 }
