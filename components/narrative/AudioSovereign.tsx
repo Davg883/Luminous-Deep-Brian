@@ -303,7 +303,7 @@ export function AudioSovereignControl() {
         setVolume(parseFloat(e.target.value));
     };
 
-    const glowIntensity = 0.3 + lowFrequencyAmplitude * 0.7;
+    const glowIntensity = 0.6; // Fixed glow intensity (was previously based on audio amplitude)
 
     return (
         <div
