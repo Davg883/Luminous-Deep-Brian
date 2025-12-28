@@ -271,10 +271,18 @@ export function AudioSovereignProvider({ children }: AudioSovereignProviderProps
         const clampedVolume = Math.max(0, Math.min(1, newVolume));
         setVolumeState(clampedVolume);
 
-        if (gainNodeRef.current) {
-            gainNodeRef.current.gain.value = clampedVolume;
+        // If user is adjusting volume to a non-zero value, they want to hear it - unmute
+        if (isMuted && clampedVolume > 0) {
+            setIsMuted(false);
+            // Set gain directly since state update is async
+            if (gainNodeRef.current) {
+                gainNodeRef.current.gain.value = clampedVolume;
+            }
+        } else if (gainNodeRef.current) {
+            // Normal case: just update gain
+            gainNodeRef.current.gain.value = isMuted ? 0 : clampedVolume;
         }
-    }, []);
+    }, [isMuted]);
 
     const toggleMute = useCallback(() => {
         setIsMuted(prev => !prev);
