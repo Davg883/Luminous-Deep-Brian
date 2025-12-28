@@ -309,8 +309,10 @@ export function AudioSovereignProvider({ children }: AudioSovereignProviderProps
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
-            if (audioContextRef.current) {
-                audioContextRef.current.close();
+            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+                audioContextRef.current.close().catch(() => {
+                    // Ignore errors when closing - context may already be closed
+                });
             }
         };
     }, [initializeAudioGraph]);
