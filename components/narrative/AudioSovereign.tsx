@@ -23,27 +23,22 @@ interface RoomSoundConfig {
 }
 
 const ROOM_SOUNDSCAPES: Record<string, RoomSoundConfig> = {
-    // The Solarium (sanctuary) - Rain on glass, high-altitude wind, soft sine waves
     sanctuary: {
         url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/restoration_40hz_hxflz8.mp3",
         description: "Rain on glass, high-altitude wind, soft sine waves",
     },
-    // The Workshop - Sub-bass pulses, rhythmic wood planing, metallic resonance
     workshop: {
         url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/mechanical_zen_40hz_qw2x9p.mp3",
         description: "Sub-bass pulses, rhythmic wood planing, metallic resonance",
     },
-    // The Study - Lo-fi tape hiss, distant lighthouse horn, rhythmic heartbeat
     study: {
         url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/archival_memory_40hz_mk7n3r.mp3",
         description: "Lo-fi tape hiss, distant lighthouse horn, rhythmic heartbeat",
     },
-    // The Control Room (luminous-deep) - Pure electronic hum, data flow white noise, server cooling
     "luminous-deep": {
         url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/system_telemetry_40hz_v9p2lf.mp3",
         description: "Pure electronic hum, 1Gbps data flow white noise, server cooling",
     },
-    // Fallback - Distant ocean waves
     default: {
         url: "https://assets.mixkit.co/sfx/preview/mixkit-distant-ocean-waves-1128.mp3",
         description: "Distant ocean ambience",
@@ -54,17 +49,12 @@ const ROOM_SOUNDSCAPES: Record<string, RoomSoundConfig> = {
 // AUDIO CONTEXT TYPES
 // ═══════════════════════════════════════════════════════════════
 interface AudioSovereignContextType {
-    // State
     isMuted: boolean;
     volume: number;
     hasInteracted: boolean;
     isPlaying: boolean;
     currentRoom: string;
-
-    // 40Hz Pulse Data (for visual sync)
-    lowFrequencyAmplitude: number; // 0-1, the "breathing" value
-
-    // Controls
+    lowFrequencyAmplitude: number;
     setMuted: (muted: boolean) => void;
     setVolume: (volume: number) => void;
     toggleMute: () => void;
@@ -74,7 +64,7 @@ interface AudioSovereignContextType {
 const AudioSovereignContext = createContext<AudioSovereignContextType | undefined>(undefined);
 
 // ═══════════════════════════════════════════════════════════════
-// AUDIO SOVEREIGN PROVIDER - The Heart of Immersive Sound
+// AUDIO SOVEREIGN PROVIDER - Simplified for reliability
 // ═══════════════════════════════════════════════════════════════
 interface AudioSovereignProviderProps {
     children: ReactNode;
@@ -89,21 +79,12 @@ export function AudioSovereignProvider({ children }: AudioSovereignProviderProps
     const [currentRoom, setCurrentRoom] = useState("default");
     const [lowFrequencyAmplitude, setLowFrequencyAmplitude] = useState(0);
 
-    // Refs for Web Audio API
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
-    const gainNodeRef = useRef<GainNode | null>(null);
-    const lowPassFilterRef = useRef<BiquadFilterNode | null>(null);
-    const analyserRef = useRef<AnalyserNode | null>(null);
-
-    // Audio elements for crossfading
-    const audioARef = useRef<HTMLAudioElement | null>(null);
-    const audioBRef = useRef<HTMLAudioElement | null>(null);
-    const activeAudioRef = useRef<"A" | "B">("A");
+    // Single audio element ref
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const currentSourceRef = useRef<string | undefined>(undefined);
 
-    // Animation frame for amplitude analysis
-    const animationFrameRef = useRef<number | null>(null);
+    // Breathing animation ref
+    const breathingRef = useRef<number | null>(null);
 
     // Navigation
     const pathname = usePathname();
@@ -114,7 +95,6 @@ export function AudioSovereignProvider({ children }: AudioSovereignProviderProps
 
     // Determine target audio URL
     const effectiveDomain = scene?.domain || routeSlug;
-
     let targetUrl: string;
     if (scene?.ambientAudioUrl) {
         targetUrl = scene.ambientAudioUrl;
@@ -125,233 +105,151 @@ export function AudioSovereignProvider({ children }: AudioSovereignProviderProps
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // INITIALIZE WEB AUDIO API GRAPH
-    // AudioSource → LowPassFilter (40Hz emphasis) → GainNode → Destination
-    //                                            ↘ AnalyserNode (for visuals)
-    // ═══════════════════════════════════════════════════════════════
-    const initializeAudioGraph = useCallback(() => {
-        if (audioContextRef.current) return;
-
-        // Create AudioContext
-        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        const ctx = new AudioContextClass();
-        audioContextRef.current = ctx;
-
-        // Create Gain Node (master volume)
-        const gainNode = ctx.createGain();
-        gainNode.gain.value = volume;
-        gainNodeRef.current = gainNode;
-
-        // Create Low-Pass Filter (40Hz emphasis for sub-bass)
-        const lowPassFilter = ctx.createBiquadFilter();
-        lowPassFilter.type = "lowshelf";
-        lowPassFilter.frequency.value = 80; // Boost frequencies below 80Hz
-        lowPassFilter.gain.value = 6; // 6dB boost to the low end
-        lowPassFilterRef.current = lowPassFilter;
-
-        // Create Analyser Node (for visual sync)
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.8;
-        analyserRef.current = analyser;
-
-        // Connect the graph
-        gainNode.connect(lowPassFilter);
-        lowPassFilter.connect(ctx.destination);
-        gainNode.connect(analyser);
-
-        // Create audio elements
-        audioARef.current = new Audio();
-        audioARef.current.crossOrigin = "anonymous";
-        audioARef.current.loop = true;
-
-        audioBRef.current = new Audio();
-        audioBRef.current.crossOrigin = "anonymous";
-        audioBRef.current.loop = true;
-
-    }, [volume]);
-
-    // ═══════════════════════════════════════════════════════════════
-    // CROSSFADE LOGIC - 3 second smooth transition
-    // ═══════════════════════════════════════════════════════════════
-    const crossfadeToSource = useCallback((newUrl: string) => {
-        if (!audioContextRef.current || !gainNodeRef.current) return;
-
-        const ctx = audioContextRef.current;
-        const fadeTime = 3; // 3 seconds crossfade
-        const currentTime = ctx.currentTime;
-
-        // Determine which audio element to use
-        const newActive = activeAudioRef.current === "A" ? "B" : "A";
-        const oldAudio = activeAudioRef.current === "A" ? audioARef.current : audioBRef.current;
-        const newAudio = newActive === "A" ? audioARef.current : audioBRef.current;
-
-        if (!newAudio) return;
-
-        // Set up new audio
-        newAudio.src = newUrl;
-        newAudio.load();
-
-        // Create separate gain nodes for crossfade
-        const oldGain = ctx.createGain();
-        const newGain = ctx.createGain();
-
-        // Connect new audio through filter
-        if (!newAudio.dataset.connected) {
-            try {
-                const newSource = ctx.createMediaElementSource(newAudio);
-                newSource.connect(newGain);
-                newGain.connect(gainNodeRef.current!);
-                newAudio.dataset.connected = "true";
-            } catch {
-                // Source already created
-            }
-        }
-
-        // Fade out old audio
-        if (oldAudio && oldAudio.dataset.connected) {
-            oldGain.gain.setValueAtTime(1, currentTime);
-            oldGain.gain.linearRampToValueAtTime(0, currentTime + fadeTime);
-
-            setTimeout(() => {
-                oldAudio.pause();
-                oldAudio.src = "";
-            }, fadeTime * 1000);
-        }
-
-        // Fade in new audio
-        newGain.gain.setValueAtTime(0, currentTime);
-        newGain.gain.linearRampToValueAtTime(1, currentTime + fadeTime);
-
-        if (hasInteracted && !isMuted) {
-            newAudio.play().catch(() => { });
-        }
-
-        activeAudioRef.current = newActive;
-        currentSourceRef.current = newUrl;
-        setCurrentRoom(effectiveDomain);
-
-    }, [hasInteracted, isMuted, effectiveDomain]);
-
-    // ═══════════════════════════════════════════════════════════════
-    // AMPLITUDE ANALYSIS - Feed the 40Hz pulse to visuals
-    // ═══════════════════════════════════════════════════════════════
-    const analyzeAmplitude = useCallback(() => {
-        if (!analyserRef.current) {
-            animationFrameRef.current = requestAnimationFrame(analyzeAmplitude);
-            return;
-        }
-
-        const analyser = analyserRef.current;
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(dataArray);
-
-        // Focus on the low frequency bins (0-80Hz range)
-        // With 256 FFT and 44100Hz sample rate, each bin ≈ 172Hz
-        // So bin 0-1 captures roughly 0-344Hz, we'll focus on bin 0
-        const lowFreqBins = dataArray.slice(0, 3);
-        const avgLowFreq = lowFreqBins.reduce((a, b) => a + b, 0) / lowFreqBins.length;
-
-        // Normalize to 0-1
-        const normalizedAmplitude = Math.min(1, avgLowFreq / 255);
-        setLowFrequencyAmplitude(normalizedAmplitude);
-
-        animationFrameRef.current = requestAnimationFrame(analyzeAmplitude);
-    }, []);
-
-    // ═══════════════════════════════════════════════════════════════
     // CONTROLS
     // ═══════════════════════════════════════════════════════════════
+    const setVolume = useCallback((newVolume: number) => {
+        const clampedVolume = Math.max(0, Math.min(1, newVolume));
+        setVolumeState(clampedVolume);
+
+        // Update audio element volume directly
+        if (audioRef.current) {
+            audioRef.current.volume = clampedVolume;
+        }
+
+        // If adjusting volume to non-zero while muted, unmute
+        if (isMuted && clampedVolume > 0) {
+            setIsMuted(false);
+            if (audioRef.current && hasInteracted) {
+                audioRef.current.play().catch(() => { });
+                setIsPlaying(true);
+            }
+        }
+    }, [isMuted, hasInteracted]);
+
     const setMuted = useCallback((muted: boolean) => {
         setIsMuted(muted);
         if (!hasInteracted) setHasInteracted(true);
     }, [hasInteracted]);
 
-    const setVolume = useCallback((newVolume: number) => {
-        const clampedVolume = Math.max(0, Math.min(1, newVolume));
-        setVolumeState(clampedVolume);
-
-        // If user is adjusting volume to a non-zero value, they want to hear it - unmute
-        if (isMuted && clampedVolume > 0) {
-            setIsMuted(false);
-            // Set gain directly since state update is async
-            if (gainNodeRef.current) {
-                gainNodeRef.current.gain.value = clampedVolume;
-            }
-        } else if (gainNodeRef.current) {
-            // Normal case: just update gain
-            gainNodeRef.current.gain.value = isMuted ? 0 : clampedVolume;
-        }
-    }, [isMuted]);
-
     const toggleMute = useCallback(() => {
-        setIsMuted(prev => !prev);
+        const newMuted = !isMuted;
+        setIsMuted(newMuted);
         if (!hasInteracted) setHasInteracted(true);
-    }, [hasInteracted]);
+
+        if (audioRef.current) {
+            if (newMuted) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+            } else {
+                audioRef.current.play().catch(() => { });
+                setIsPlaying(true);
+            }
+        }
+    }, [isMuted, hasInteracted]);
 
     const activateSanctuary = useCallback(() => {
-        // Resume audio context (required after user gesture)
-        if (audioContextRef.current?.state === "suspended") {
-            audioContextRef.current.resume();
-        }
-
         setIsMuted(false);
         setHasInteracted(true);
-        setIsPlaying(true);
 
-        // Start amplitude analysis
-        if (!animationFrameRef.current) {
-            analyzeAmplitude();
+        if (audioRef.current) {
+            audioRef.current.volume = volume;
+            audioRef.current.play().catch(() => { });
+            setIsPlaying(true);
         }
-    }, [analyzeAmplitude]);
+
+        // Start breathing animation
+        if (!breathingRef.current) {
+            const animate = () => {
+                // Simulate 40Hz breathing (smooth sine wave)
+                const time = Date.now() / 1000;
+                const amplitude = (Math.sin(time * 2 * Math.PI * 0.5) + 1) / 2; // 0.5Hz breathing
+                setLowFrequencyAmplitude(amplitude * 0.6);
+                breathingRef.current = requestAnimationFrame(animate);
+            };
+            animate();
+        }
+    }, [volume]);
 
     // ═══════════════════════════════════════════════════════════════
     // EFFECTS
     // ═══════════════════════════════════════════════════════════════
 
-    // Initialize on mount
+    // Initialize audio element on mount
     useEffect(() => {
-        initializeAudioGraph();
+        if (!audioRef.current) {
+            audioRef.current = new Audio();
+            audioRef.current.loop = true;
+            audioRef.current.volume = volume;
+            audioRef.current.preload = "auto";
+        }
 
         return () => {
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
+            if (breathingRef.current) {
+                cancelAnimationFrame(breathingRef.current);
             }
-            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-                audioContextRef.current.close().catch(() => {
-                    // Ignore errors when closing - context may already be closed
-                });
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.src = "";
             }
         };
-    }, [initializeAudioGraph]);
+    }, []);
 
-    // Handle source changes (crossfade between rooms)
+    // Handle source changes
     useEffect(() => {
-        if (!hasInteracted) return;
+        if (!hasInteracted || !audioRef.current) return;
 
         if (currentSourceRef.current !== targetUrl) {
-            crossfadeToSource(targetUrl);
-        }
-    }, [targetUrl, hasInteracted, crossfadeToSource]);
+            const audio = audioRef.current;
 
-    // Handle play/pause based on mute state
+            // Fade out, change source, fade in
+            const originalVolume = volume;
+
+            // Simple crossfade
+            audio.volume = 0;
+            audio.src = targetUrl;
+            audio.load();
+
+            audio.oncanplaythrough = () => {
+                if (!isMuted) {
+                    audio.play().catch(() => { });
+                    setIsPlaying(true);
+                    // Fade in
+                    let fadeVolume = 0;
+                    const fadeIn = setInterval(() => {
+                        fadeVolume += 0.05;
+                        if (fadeVolume >= originalVolume) {
+                            audio.volume = originalVolume;
+                            clearInterval(fadeIn);
+                        } else {
+                            audio.volume = fadeVolume;
+                        }
+                    }, 50);
+                }
+            };
+
+            currentSourceRef.current = targetUrl;
+            setCurrentRoom(effectiveDomain);
+        }
+    }, [targetUrl, hasInteracted, isMuted, volume, effectiveDomain]);
+
+    // Handle mute state changes
     useEffect(() => {
-        const activeAudio = activeAudioRef.current === "A" ? audioARef.current : audioBRef.current;
-        if (!activeAudio || !hasInteracted) return;
+        if (!audioRef.current || !hasInteracted) return;
 
         if (isMuted) {
-            activeAudio.pause();
+            audioRef.current.pause();
             setIsPlaying(false);
         } else {
-            activeAudio.play().catch(() => { });
+            audioRef.current.volume = volume;
+            audioRef.current.play().catch(() => { });
             setIsPlaying(true);
         }
-    }, [isMuted, hasInteracted]);
+    }, [isMuted, hasInteracted, volume]);
 
-    // Update gain when volume changes
+    // Update volume when it changes
     useEffect(() => {
-        if (gainNodeRef.current) {
-            gainNodeRef.current.gain.value = isMuted ? 0 : volume;
+        if (audioRef.current && !isMuted) {
+            audioRef.current.volume = volume;
         }
     }, [volume, isMuted]);
 
@@ -410,7 +308,6 @@ export function AudioSovereignControl() {
     };
 
     const handleMouseLeave = () => {
-        // Keep volume slider visible for a moment after leaving
         hideTimeoutRef.current = setTimeout(() => setShowVolume(false), 1500);
     };
 
@@ -422,12 +319,17 @@ export function AudioSovereignControl() {
         }
     };
 
-    // Breathing glow based on 40Hz amplitude
+    const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+        setVolume(parseFloat(e.target.value));
+    };
+
     const glowIntensity = 0.3 + lowFrequencyAmplitude * 0.7;
 
     return (
         <div
             className="fixed top-6 right-6 z-50 flex items-center gap-3"
+            onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
             {/* Volume Slider (revealed on hover) */}
@@ -438,7 +340,6 @@ export function AudioSovereignControl() {
                         ? "w-32 opacity-100 pointer-events-auto"
                         : "w-0 opacity-0 pointer-events-none"
                 )}
-                onMouseEnter={handleMouseEnter}
             >
                 <div className="glass-morphic rounded-full px-4 py-2 backdrop-blur-xl bg-black/40">
                     <input
@@ -447,14 +348,8 @@ export function AudioSovereignControl() {
                         max="1"
                         step="0.01"
                         value={volume}
-                        onChange={(e) => setVolume(parseFloat(e.target.value))}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onInput={() => {
-                            // Clear any pending hide timeout while actively dragging
-                            if (hideTimeoutRef.current) {
-                                clearTimeout(hideTimeoutRef.current);
-                            }
-                        }}
+                        onChange={handleVolumeChange}
+                        onClick={(e) => e.stopPropagation()}
                         className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(255,255,255,0.5)]"
                     />
                 </div>
@@ -463,7 +358,6 @@ export function AudioSovereignControl() {
             {/* Sound Wave Button */}
             <button
                 onClick={handleClick}
-                onMouseEnter={handleMouseEnter}
                 className={clsx(
                     "relative p-3 rounded-full glass-morphic backdrop-blur-xl transition-all duration-300 group",
                     "bg-black/40 border border-white/20 hover:border-white/40",
