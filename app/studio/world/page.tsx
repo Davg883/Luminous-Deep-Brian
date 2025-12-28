@@ -1,140 +1,222 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { ChevronDown, ChevronRight, Lock, ScrollText, Terminal, User, Shield } from 'lucide-react';
-import Link from 'next/link';
+import { Lock, ScrollText, Terminal, User, Shield, BookOpen, Map, Sparkles } from 'lucide-react';
+import { KanbanColumn, KanbanCard, QuickViewModal } from '@/components/studio/AssetGrid';
+
+interface QuickViewData {
+    title: string;
+    subtitle?: string;
+    coverImage?: string;
+    summary?: string;
+    badge?: string;
+    badgeColor?: 'emerald' | 'amber' | 'violet' | 'rose' | 'blue';
+}
 
 export default function WorldMapPage() {
     const worldMap = useQuery(api.studio.world.getWorldMap);
+    const [quickViewData, setQuickViewData] = useState<QuickViewData | null>(null);
 
     if (worldMap === undefined) {
         return (
-            <div className="min-h-screen bg-stone-950 flex items-center justify-center text-emerald-900/50 font-mono text-xs animate-pulse">
-                MAPPING NARRATIVE STRATA...
+            <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-pulse mb-4">
+                        <Map className="w-12 h-12 text-emerald-500/50 mx-auto" />
+                    </div>
+                    <span className="text-emerald-900/50 font-mono text-xs uppercase tracking-widest">
+                        MAPPING NARRATIVE STRATA...
+                    </span>
+                </div>
             </div>
         );
     }
 
     const { canon, myths, signalsBySeason, reflections, integrity } = worldMap;
 
+    // Flatten signals for the kanban view
+    const allSignals = Object.values(signalsBySeason).flat();
+
+    const openQuickView = (data: QuickViewData) => {
+        setQuickViewData(data);
+    };
+
     return (
-        <div className="space-y-12">
+        <div className="min-h-screen bg-[#0a0a0f] text-slate-200 p-6 md:p-8">
 
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-serif text-gray-900 mb-2">World Map</h1>
-                    <p className="text-sm text-gray-500 font-mono uppercase tracking-widest">Narrative Command</p>
-                </div>
-            </div>
-
-            {/* Integrity Panel */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-6 bg-gray-100 border border-gray-200 rounded-xl">
-                <IntegrityStat label="Canon" value={integrity.totalCanon} icon={Shield} color="violet" />
-                <IntegrityStat label="Myths" value={integrity.totalMyths} icon={ScrollText} color="amber" />
-                <IntegrityStat label="Signals" value={integrity.totalSignals} icon={Terminal} color="emerald" />
-                <IntegrityStat label="Reflections" value={integrity.totalReflections} icon={User} color="rose" />
-                <div className="col-span-2 md:col-span-1 flex flex-col justify-center text-center">
-                    <span className="text-[10px] font-mono uppercase text-gray-500">Last Updated</span>
-                    <span className="text-xs text-gray-600" suppressHydrationWarning>
-                        {integrity.lastUpdated ? new Date(integrity.lastUpdated).toLocaleDateString() : 'N/A'}
-                    </span>
-                </div>
-            </div>
-
-            {/* ════════════════════════════════════════════════════
-                    LEVEL 0: CANON (Locked)
-                ════════════════════════════════════════════════════ */}
-            <StratumSection
-                title="CANON"
-                subtitle="Immutable World Rules"
-                icon={Shield}
-                color="violet"
-                locked
-            >
-                {canon.length === 0 ? (
-                    <p className="text-gray-500 italic text-sm">No canonical documents defined yet.</p>
-                ) : (
-                    <ul className="space-y-2">
-                        {canon.map((doc) => (
-                            <li key={doc._id} className="flex items-center gap-3 text-sm">
-                                <Lock className="w-3 h-3 text-violet-500" />
-                                <span className="text-gray-900">{doc.title}</span>
-                                <span className="text-gray-500 text-xs">v{doc.version}</span>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </StratumSection>
-
-            {/* ════════════════════════════════════════════════════
-                    LEVEL 1: FOUNDATIONAL MYTHS (Palimpsaest)
-                ════════════════════════════════════════════════════ */}
-            <StratumSection
-                title="FOUNDATIONAL MYTHS"
-                subtitle="The Palimpsaest"
-                icon={ScrollText}
-                color="amber"
-            >
-                {myths.length === 0 ? (
-                    <p className="text-gray-500 italic text-sm">No foundational myths written yet.</p>
-                ) : (
-                    <ul className="space-y-2">
-                        {myths.map((myth) => (
-                            <NarrativeRow key={myth._id} item={myth} type="myth" />
-                        ))}
-                    </ul>
-                )}
-            </StratumSection>
-
-            {/* ════════════════════════════════════════════════════
-                    LEVEL 2: SIGNALS (Thea Lux)
-                ════════════════════════════════════════════════════ */}
-            <StratumSection
-                title="SIGNALS"
-                subtitle="Thea Lux — Season / Episode Flow"
-                icon={Terminal}
-                color="emerald"
-            >
-                {Object.keys(signalsBySeason).length === 0 ? (
-                    <p className="text-gray-500 italic text-sm">No signals transmitted yet.</p>
-                ) : (
-                    <div className="space-y-6">
-                        {Object.entries(signalsBySeason).map(([season, signals]) => (
-                            <div key={season}>
-                                <h4 className="text-xs font-mono uppercase text-gray-500 mb-3">Season {season}</h4>
-                                <ul className="space-y-2">
-                                    {signals.map((signal) => (
-                                        <NarrativeRow key={signal._id} item={signal} type="signal" />
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-emerald-500/10 rounded-xl">
+                        <Map className="w-6 h-6 text-emerald-500" />
                     </div>
-                )}
-            </StratumSection>
+                    <div>
+                        <h1 className="text-2xl font-serif text-white mb-1">World Map</h1>
+                        <p className="text-xs text-slate-500 font-mono uppercase tracking-widest">Narrative Command • All Strata</p>
+                    </div>
+                </div>
 
-            {/* ════════════════════════════════════════════════════
-                    LEVEL 3: REFLECTIONS (Eleanor Vance)
-                ════════════════════════════════════════════════════ */}
-            <StratumSection
-                title="REFLECTIONS"
-                subtitle="Eleanor Vance"
-                icon={User}
-                color="rose"
+                {/* Integrity Stats - Compact */}
+                <div className="hidden lg:flex items-center gap-4">
+                    <IntegrityStat label="Canon" value={integrity.totalCanon} color="amber" />
+                    <IntegrityStat label="Myths" value={integrity.totalMyths} color="violet" />
+                    <IntegrityStat label="Signals" value={integrity.totalSignals} color="emerald" />
+                    <IntegrityStat label="Reflections" value={integrity.totalReflections} color="blue" />
+                </div>
+            </div>
+
+            {/* ════════════════════════════════════════════════════════════════
+                KANBAN BOARD
+            ════════════════════════════════════════════════════════════════ */}
+            <div className="flex gap-6 overflow-x-auto pb-6 snap-x">
+
+                {/* Column 1: CANON (Gold) */}
+                <KanbanColumn
+                    title="CANON"
+                    subtitle="Immutable World Rules"
+                    icon={Shield}
+                    color="gold"
+                    count={canon.length}
+                >
+                    {canon.length === 0 ? (
+                        <EmptyState message="No canonical rules defined" />
+                    ) : (
+                        canon.map((doc) => (
+                            <KanbanCard
+                                key={doc._id}
+                                title={doc.title}
+                                subtitle={`Version ${doc.version}`}
+                                isLocked={true}
+                                onClick={() => openQuickView({
+                                    title: doc.title,
+                                    subtitle: `Version ${doc.version}`,
+                                    summary: doc.content?.slice(0, 300) + '...',
+                                    badge: 'CANON',
+                                    badgeColor: 'amber',
+                                })}
+                            />
+                        ))
+                    )}
+                </KanbanColumn>
+
+                {/* Column 2: MYTH (Purple) */}
+                <KanbanColumn
+                    title="MYTH"
+                    subtitle="Foundational Stories"
+                    icon={ScrollText}
+                    color="purple"
+                    count={myths.length}
+                >
+                    {myths.length === 0 ? (
+                        <EmptyState message="No foundational myths" />
+                    ) : (
+                        myths.map((myth) => (
+                            <KanbanCard
+                                key={myth._id}
+                                title={myth.title}
+                                subtitle="The Palimpsaest"
+                                coverImage={myth.coverImage}
+                                isLocked={myth.isLocked}
+                                onClick={() => openQuickView({
+                                    title: myth.title,
+                                    subtitle: 'Foundational Myth',
+                                    coverImage: myth.coverImage,
+                                    summary: myth.summaryShort || myth.content?.slice(0, 300) + '...',
+                                    badge: 'MYTH',
+                                    badgeColor: 'violet',
+                                })}
+                            />
+                        ))
+                    )}
+                </KanbanColumn>
+
+                {/* Column 3: SIGNALS (Green) - Episode Covers */}
+                <KanbanColumn
+                    title="SIGNALS"
+                    subtitle="Thea Lux Protocol"
+                    icon={Terminal}
+                    color="green"
+                    count={allSignals.length}
+                >
+                    {allSignals.length === 0 ? (
+                        <EmptyState message="No signals transmitted" />
+                    ) : (
+                        allSignals.map((signal) => (
+                            <SignalCard
+                                key={signal._id}
+                                title={signal.title}
+                                season={signal.season}
+                                episode={signal.episode}
+                                coverImage={signal.coverImage}
+                                isLocked={signal.isLocked}
+                                onClick={() => openQuickView({
+                                    title: signal.title,
+                                    subtitle: `Season ${signal.season} • Episode ${signal.episode}`,
+                                    coverImage: signal.coverImage,
+                                    summary: signal.summaryShort || signal.content?.slice(0, 300) + '...',
+                                    badge: `S${signal.season} E${signal.episode}`,
+                                    badgeColor: 'emerald',
+                                })}
+                            />
+                        ))
+                    )}
+                </KanbanColumn>
+
+                {/* Column 4: REFLECTIONS (Blue) */}
+                <KanbanColumn
+                    title="REFLECTIONS"
+                    subtitle="Eleanor's Archive"
+                    icon={User}
+                    color="blue"
+                    count={reflections.length}
+                >
+                    {reflections.length === 0 ? (
+                        <EmptyState message="No reflections recorded" />
+                    ) : (
+                        reflections.map((ref) => (
+                            <KanbanCard
+                                key={ref._id}
+                                title={ref.title}
+                                subtitle="Diary Entry"
+                                coverImage={ref.coverImage}
+                                isLocked={ref.isLocked}
+                                onClick={() => openQuickView({
+                                    title: ref.title,
+                                    subtitle: 'Eleanor Vance',
+                                    coverImage: ref.coverImage,
+                                    summary: ref.summaryShort || ref.content?.slice(0, 300) + '...',
+                                    badge: 'REFLECTION',
+                                    badgeColor: 'blue',
+                                })}
+                            />
+                        ))
+                    )}
+                </KanbanColumn>
+
+            </div>
+
+            {/* Quick View Modal */}
+            <QuickViewModal
+                isOpen={!!quickViewData}
+                onClose={() => setQuickViewData(null)}
+                title={quickViewData?.title || ''}
+                subtitle={quickViewData?.subtitle}
+                coverImage={quickViewData?.coverImage}
+                summary={quickViewData?.summary}
+                badge={quickViewData?.badge}
+                badgeColor={quickViewData?.badgeColor}
             >
-                {reflections.length === 0 ? (
-                    <p className="text-gray-500 italic text-sm">No reflections recorded yet.</p>
-                ) : (
-                    <ul className="space-y-2">
-                        {reflections.map((ref) => (
-                            <NarrativeRow key={ref._id} item={ref} type="reflection" />
-                        ))}
-                    </ul>
-                )}
-            </StratumSection>
+                <div className="flex gap-3">
+                    <button className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors">
+                        Open in Reader
+                    </button>
+                    <button className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors">
+                        Edit
+                    </button>
+                </div>
+            </QuickViewModal>
 
         </div>
     );
@@ -144,82 +226,88 @@ export default function WorldMapPage() {
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════
 
-function IntegrityStat({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ElementType; color: string }) {
+function IntegrityStat({ label, value, color }: { label: string; value: number; color: string }) {
     const colorMap: Record<string, string> = {
-        violet: 'text-violet-600 bg-violet-50 border-violet-200',
-        amber: 'text-amber-600 bg-amber-50 border-amber-200',
-        emerald: 'text-emerald-600 bg-emerald-50 border-emerald-200',
-        rose: 'text-rose-600 bg-rose-50 border-rose-200',
+        amber: 'text-amber-500',
+        violet: 'text-violet-500',
+        emerald: 'text-emerald-500',
+        blue: 'text-blue-500',
     };
+
     return (
-        <div className={`flex items-center gap-3 p-3 rounded-lg border ${colorMap[color]}`}>
-            <Icon className="w-5 h-5" />
-            <div>
-                <p className="text-2xl font-bold text-gray-900">{value}</p>
-                <p className="text-[10px] font-mono uppercase opacity-60">{label}</p>
-            </div>
+        <div className="flex items-center gap-2 px-3 py-2 bg-white/[0.03] border border-white/5 rounded-lg">
+            <span className={`text-xl font-bold ${colorMap[color]}`}>{value}</span>
+            <span className="text-[10px] font-mono uppercase text-slate-500">{label}</span>
         </div>
     );
 }
 
-function StratumSection({ title, subtitle, icon: Icon, color, locked, children }: {
+function EmptyState({ message }: { message: string }) {
+    return (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+            <Sparkles className="w-6 h-6 text-slate-600 mb-2" />
+            <span className="text-[10px] font-mono text-slate-600 uppercase">{message}</span>
+        </div>
+    );
+}
+
+// Special Signal Card with Cover Art emphasis
+function SignalCard({
+    title,
+    season,
+    episode,
+    coverImage,
+    isLocked,
+    onClick
+}: {
     title: string;
-    subtitle: string;
-    icon: React.ElementType;
-    color: string;
-    locked?: boolean;
-    children: React.ReactNode;
+    season: number;
+    episode: number;
+    coverImage?: string;
+    isLocked?: boolean;
+    onClick?: () => void;
 }) {
-    const [isOpen, setIsOpen] = React.useState(true);
-    const colorMap: Record<string, string> = {
-        violet: 'border-violet-300 text-violet-600',
-        amber: 'border-amber-300 text-amber-600',
-        emerald: 'border-emerald-300 text-emerald-600',
-        rose: 'border-rose-300 text-rose-600',
-    };
-
     return (
-        <div className={`border-l-2 ${colorMap[color]} pl-6`}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-3 mb-4 w-full text-left"
-            >
-                {isOpen ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
-                <Icon className="w-5 h-5" />
-                <div>
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{title}</h3>
-                    <p className="text-xs text-gray-500">{subtitle}</p>
-                </div>
-                {locked && <Lock className="w-3 h-3 text-gray-400 ml-2" />}
-            </button>
-            {isOpen && <div className="ml-7">{children}</div>}
-        </div>
-    );
-}
-
-function NarrativeRow({ item, type }: { item: any; type: 'myth' | 'signal' | 'reflection' }) {
-    const statusPill = item.isLocked ? (
-        <span className="px-2 py-0.5 bg-rose-500/20 text-rose-400 text-[9px] uppercase rounded">Locked</span>
-    ) : (
-        <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[9px] uppercase rounded">Published</span>
-    );
-
-    const meta = type === 'signal'
-        ? `S${item.season}E${item.episode}`
-        : type === 'myth'
-            ? 'Myth'
-            : 'Reflection';
-
-    return (
-        <Link
-            href={`/sanctuary/library/reader/${item.slug}`}
-            className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded transition-colors group"
+        <div
+            onClick={onClick}
+            className="group relative rounded-lg overflow-hidden cursor-pointer transition-all hover:ring-2 hover:ring-emerald-500/50"
         >
-            <div className="flex items-center gap-3">
-                <span className="text-[10px] font-mono text-gray-500 w-12">{meta}</span>
-                <span className="text-sm text-gray-900 group-hover:text-emerald-600 transition-colors">{item.title}</span>
+            {/* Cover Image - Larger emphasis */}
+            <div className="aspect-[3/4] bg-gradient-to-br from-slate-800 to-slate-900">
+                {coverImage ? (
+                    <img
+                        src={coverImage}
+                        alt={title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="w-8 h-8 text-slate-700" />
+                    </div>
+                )}
+
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+
+                {/* Episode badge */}
+                <div className="absolute top-2 left-2 px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded text-[9px] font-mono font-bold text-emerald-400 backdrop-blur-sm">
+                    S{season} E{episode}
+                </div>
+
+                {/* Lock indicator */}
+                {isLocked && (
+                    <div className="absolute top-2 right-2 p-1.5 bg-rose-500/20 border border-rose-500/30 rounded-full backdrop-blur-sm">
+                        <Lock className="w-2.5 h-2.5 text-rose-400" />
+                    </div>
+                )}
+
+                {/* Title */}
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <h4 className="text-xs font-medium text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition-colors">
+                        {title}
+                    </h4>
+                </div>
             </div>
-            {statusPill}
-        </Link>
+        </div>
     );
 }

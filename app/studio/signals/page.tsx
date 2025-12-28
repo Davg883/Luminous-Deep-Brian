@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api"; // Updated import to allow finding the new file
+import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import {
     Signal,
@@ -12,9 +12,15 @@ import {
     Plus,
     Save,
     Trash2,
-    RefreshCcw,
-    Zap
+    Image as ImageIcon,
+    Sparkles,
+    Wand2,
+    Zap,
+    ExternalLink,
+    Eye,
+    X
 } from "lucide-react";
+import { AssetCard, AssetGrid } from "@/components/studio/AssetGrid";
 
 export default function SignalTransmitterPage() {
     const signals = useQuery(api.studio.signals.listSignals);
@@ -33,6 +39,12 @@ export default function SignalTransmitterPage() {
     const [isLocked, setIsLocked] = useState(true);
     const [glitchPoint, setGlitchPoint] = useState<number>(100);
 
+    // New: Cover Art Fields
+    const [coverImage, setCoverImage] = useState("");
+    const [subtitle, setSubtitle] = useState("");
+    const [generatedPrompt, setGeneratedPrompt] = useState("");
+    const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+
     // Load selected signal into form
     useEffect(() => {
         if (selectedId && signals) {
@@ -45,6 +57,8 @@ export default function SignalTransmitterPage() {
                 setContent(signal.content);
                 setIsLocked(signal.isLocked);
                 setGlitchPoint(signal.glitchPoint || 100);
+                setCoverImage(signal.coverImage || "");
+                setSubtitle(signal.subtitle || "");
             }
         } else if (!selectedId) {
             // Reset for new entry
@@ -55,6 +69,9 @@ export default function SignalTransmitterPage() {
             setContent("# New Transmission\n\nStart writing...");
             setIsLocked(true);
             setGlitchPoint(50);
+            setCoverImage("");
+            setSubtitle("");
+            setGeneratedPrompt("");
         }
     }, [selectedId, signals]);
 
@@ -82,7 +99,9 @@ export default function SignalTransmitterPage() {
             episode,
             content,
             isLocked,
-            glitchPoint
+            glitchPoint,
+            coverImage: coverImage || undefined,
+            subtitle: subtitle || undefined,
         });
         setIsEditing(false);
     };
@@ -94,11 +113,24 @@ export default function SignalTransmitterPage() {
         }
     };
 
+    const handleGeneratePrompt = async () => {
+        setIsGeneratingPrompt(true);
+        // Simulate AI prompt generation (in real implementation, call an AI endpoint)
+        const basePrompt = `Cinematic book cover art for "${title}", Episode ${episode} of a sci-fi mystery series. `;
+        const contentSnippet = content.slice(0, 500).replace(/[#*_]/g, '');
+        const moodPrompt = `Mood: dark, atmospheric, noir. Style: digital painting, moody lighting, --ar 2:3 --v 6`;
+
+        setTimeout(() => {
+            setGeneratedPrompt(basePrompt + `Scene: ${contentSnippet.slice(0, 200)}... ` + moodPrompt);
+            setIsGeneratingPrompt(false);
+        }, 1500);
+    };
+
     return (
         <div className="flex h-screen bg-[#0a0a0f] text-slate-200 font-sans selection:bg-emerald-500/30">
 
-            {/* 1. Sidebar List */}
-            <aside className="w-80 border-r border-white/5 flex flex-col">
+            {/* 1. Sidebar - Now a Visual Grid */}
+            <aside className="w-96 border-r border-white/5 flex flex-col">
                 <div className="p-6 border-b border-white/5 bg-white/[0.02]">
                     <div className="flex items-center gap-3 mb-1 text-emerald-500">
                         <Signal className="w-5 h-5" />
@@ -107,51 +139,42 @@ export default function SignalTransmitterPage() {
                     <p className="text-xs text-slate-500">Thea Lux Protocol Interface</p>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                <div className="flex-1 overflow-y-auto p-4">
+                    {/* Create New Button */}
                     <button
                         onClick={() => { setSelectedId(null); setIsEditing(true); }}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg border border-dashed border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-xs uppercase tracking-wider text-slate-400 hover:text-emerald-400 mb-4"
+                        className="w-full flex items-center justify-center gap-3 p-4 rounded-xl border border-dashed border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-xs uppercase tracking-wider text-slate-400 hover:text-emerald-400 mb-6"
                     >
                         <Plus className="w-4 h-4" />
                         Create Signal
                     </button>
 
-                    {signals?.map((signal) => (
-                        <div
-                            key={signal._id}
-                            onClick={() => { setSelectedId(signal._id); setIsEditing(true); }}
-                            className={`group relative p-4 rounded-lg border transition-all cursor-pointer ${selectedId === signal._id
-                                    ? "bg-emerald-950/30 border-emerald-500/50"
-                                    : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
-                                }`}
-                        >
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="font-mono text-[10px] text-emerald-600">
-                                    S{signal.season} • E{signal.episode}
-                                </span>
-                                {signal.isLocked ? <Lock className="w-3 h-3 text-rose-500" /> : <Unlock className="w-3 h-3 text-emerald-500" />}
-                            </div>
-                            <h3 className="font-serif text-sm text-slate-200 group-hover:text-white truncate">
-                                {signal.title}
-                            </h3>
-                            <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleDelete(signal._id); }}
-                                    className="p-1 hover:bg-rose-500/20 rounded text-rose-500"
-                                >
-                                    <Trash2 className="w-3 h-3" />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                    {/* Visual Grid of Signals */}
+                    <AssetGrid columns={2} gap="sm">
+                        {signals?.map((signal) => (
+                            <AssetCard
+                                key={signal._id}
+                                id={signal._id}
+                                title={signal.title}
+                                subtitle={signal.subtitle}
+                                coverImage={signal.coverImage}
+                                badge={`S${signal.season} E${signal.episode}`}
+                                badgeColor="emerald"
+                                isLocked={signal.isLocked}
+                                isSelected={selectedId === signal._id}
+                                onClick={() => { setSelectedId(signal._id); setIsEditing(true); }}
+                                variant="compact"
+                            />
+                        ))}
+                    </AssetGrid>
                 </div>
             </aside>
 
             {/* 2. Editor Area */}
-            <main className="flex-1 flex flex-col relative overflow-hidden bg-[url('https://res.cloudinary.com/dptqxjhb8/image/upload/v1766235198/House_video_z7n1yj.mp4')] bg-cover">
+            <main className="flex-1 flex flex-col relative overflow-hidden">
                 <div className="absolute inset-0 bg-[#0a0a0f]/95 backdrop-blur-3xl z-0" />
 
-                <div className="relative z-10 flex-1 flex flex-col max-w-5xl mx-auto w-full h-full">
+                <div className="relative z-10 flex-1 flex flex-col max-w-6xl mx-auto w-full h-full">
 
                     {/* Toolbar */}
                     <div className="flex items-center justify-between p-6 border-b border-white/5">
@@ -176,9 +199,10 @@ export default function SignalTransmitterPage() {
                     </div>
 
                     <div className="flex-1 flex overflow-hidden">
-                        {/* Meta & Settings */}
-                        <div className="w-72 border-r border-white/5 p-6 space-y-8 overflow-y-auto">
+                        {/* Meta & Settings Panel */}
+                        <div className="w-80 border-r border-white/5 p-6 space-y-6 overflow-y-auto">
 
+                            {/* Indexing */}
                             <div className="space-y-4">
                                 <label className="block text-xs font-mono text-slate-500 uppercase">Indexing</label>
                                 <div className="grid grid-cols-2 gap-4">
@@ -203,6 +227,94 @@ export default function SignalTransmitterPage() {
                                 </div>
                             </div>
 
+                            {/* ═══════════════════════════════════════════════════ */}
+                            {/* NEW: COVER ART SECTION */}
+                            {/* ═══════════════════════════════════════════════════ */}
+                            <div className="space-y-4">
+                                <label className="block text-xs font-mono text-slate-500 uppercase flex items-center gap-2">
+                                    <ImageIcon className="w-3 h-3" /> Cover Art
+                                </label>
+
+                                {/* Cover Image Preview */}
+                                <div className="relative aspect-[2/3] w-full bg-slate-800 rounded-lg overflow-hidden border border-white/10">
+                                    {coverImage ? (
+                                        <>
+                                            <img
+                                                src={coverImage}
+                                                alt="Cover preview"
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => (e.currentTarget.style.display = 'none')}
+                                            />
+                                            <button
+                                                onClick={() => setCoverImage("")}
+                                                className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
+                                            >
+                                                <X className="w-3 h-3 text-white" />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-600">
+                                            <Sparkles className="w-8 h-8 mb-2" />
+                                            <span className="text-[10px] uppercase tracking-wider">No Cover Set</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Cover URL Input */}
+                                <input
+                                    type="url"
+                                    value={coverImage}
+                                    onChange={(e) => setCoverImage(e.target.value)}
+                                    placeholder="Paste Cloudinary URL..."
+                                    className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs focus:border-emerald-500/50 focus:outline-none font-mono"
+                                />
+
+                                {/* Subtitle */}
+                                <input
+                                    type="text"
+                                    value={subtitle}
+                                    onChange={(e) => setSubtitle(e.target.value)}
+                                    placeholder="Episode subtitle..."
+                                    className="w-full bg-white/5 border border-white/10 rounded p-2 text-xs focus:border-emerald-500/50 focus:outline-none"
+                                />
+
+                                {/* Generate Prompt Button */}
+                                <button
+                                    onClick={handleGeneratePrompt}
+                                    disabled={isGeneratingPrompt || !title}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 rounded text-xs font-mono uppercase tracking-wider text-violet-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                    {isGeneratingPrompt ? (
+                                        <>
+                                            <Sparkles className="w-3 h-3 animate-spin" />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Wand2 className="w-3 h-3" />
+                                            Generate Prompt
+                                        </>
+                                    )}
+                                </button>
+
+                                {/* Generated Prompt Display */}
+                                {generatedPrompt && (
+                                    <div className="p-3 bg-violet-950/30 border border-violet-500/20 rounded text-[10px] text-violet-300 font-mono leading-relaxed">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="uppercase text-violet-500">Midjourney Prompt</span>
+                                            <button
+                                                onClick={() => navigator.clipboard.writeText(generatedPrompt)}
+                                                className="text-violet-400 hover:text-violet-300"
+                                            >
+                                                Copy
+                                            </button>
+                                        </div>
+                                        <p className="line-clamp-6">{generatedPrompt}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Encryption */}
                             <div className="space-y-4">
                                 <label className="block text-xs font-mono text-slate-500 uppercase">Encryption</label>
 

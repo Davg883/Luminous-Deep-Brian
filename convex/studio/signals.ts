@@ -21,6 +21,9 @@ export const publishSignal = mutation({
         content: v.string(),
         isLocked: v.boolean(),
         glitchPoint: v.optional(v.number()),
+        // Cover Art Fields
+        coverImage: v.optional(v.string()),
+        subtitle: v.optional(v.string()),
         // Narrative Governance
         stratum: v.optional(v.union(
             v.literal("signal"),
@@ -43,6 +46,9 @@ export const publishSignal = mutation({
             isLocked: args.isLocked,
             glitchPoint: args.glitchPoint,
             publishedAt: Date.now(),
+            // Cover Art
+            coverImage: args.coverImage,
+            subtitle: args.subtitle,
             // Narrative Governance: Default stratum to "signal" if not provided
             stratum: args.stratum ?? "signal",
             voice: args.voice,
