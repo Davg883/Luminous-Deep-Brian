@@ -155,3 +155,109 @@ export const migrateAndReindex = mutation({
         };
     }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// AUDIO SOVEREIGN MIGRATION: Seed Room Soundscapes
+// Seeds the ambientAudioUrl for each domain/room
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Room soundscape definitions
+ * Each room has a unique 40Hz-infused ambient soundscape
+ */
+const ROOM_SOUNDSCAPES: Record<string, { url: string; description: string }> = {
+    // The Solarium (sanctuary) - Rain on glass, high-altitude wind, soft sine waves
+    sanctuary: {
+        url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/restoration_40hz_hxflz8.mp3",
+        description: "Rain on glass, high-altitude wind, soft sine waves",
+    },
+    // The Workshop - Sub-bass pulses, rhythmic wood planing, metallic resonance
+    workshop: {
+        url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/mechanical_zen_40hz_qw2x9p.mp3",
+        description: "Sub-bass pulses, rhythmic wood planing, metallic resonance",
+    },
+    // The Study - Lo-fi tape hiss, distant lighthouse horn, rhythmic heartbeat
+    study: {
+        url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/archival_memory_40hz_mk7n3r.mp3",
+        description: "Lo-fi tape hiss, distant lighthouse horn, rhythmic heartbeat",
+    },
+    // The Control Room (luminous-deep) - Pure electronic hum, data flow white noise, server cooling
+    "luminous-deep": {
+        url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/system_telemetry_40hz_v9p2lf.mp3",
+        description: "Pure electronic hum, 1Gbps data flow white noise, server cooling",
+    },
+    // The Lounge (Hearth) - Crackling fire, distant waves
+    lounge: {
+        url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/hearth_warmth_40hz_kj8n2m.mp3",
+        description: "Crackling fire, distant waves, warm resonance",
+    },
+    // The Boathouse - Creaking timber, lapping water, rope tension
+    boathouse: {
+        url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/maritime_drone_40hz_pl3x7q.mp3",
+        description: "Creaking timber, lapping water, maritime ambience",
+    },
+    // The Kitchen - Utility sounds, stainless steel, ventilation
+    kitchen: {
+        url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/culinary_hum_40hz_rt5y9w.mp3",
+        description: "Kitchen ambient, ventilation hum, culinary warmth",
+    },
+    // The Orangery - Nature, glass, botanicals
+    orangery: {
+        url: "https://res.cloudinary.com/dptqxjhb8/video/upload/v1735258400/botanical_breath_40hz_nv2z4e.mp3",
+        description: "Botanical greenhouse, glass resonance, nature sounds",
+    },
+};
+
+/**
+ * Seed ambient audio URLs to all scenes based on their domain
+ */
+export const seedAmbientAudio = mutation({
+    args: {},
+    handler: async (ctx) => {
+        console.log("═══════════════════════════════════════════════════════════════");
+        console.log("[AUDIO SOVEREIGN] Seeding room soundscapes...");
+        console.log("═══════════════════════════════════════════════════════════════");
+
+        // Fetch all scenes
+        const scenes = await ctx.db.query("scenes").collect();
+        console.log(`[AUDIO SOVEREIGN] Found ${scenes.length} scenes to process`);
+
+        let updatedCount = 0;
+        let skippedCount = 0;
+
+        for (const scene of scenes) {
+            const domain = scene.domain as string;
+            const soundscape = ROOM_SOUNDSCAPES[domain];
+
+            if (soundscape) {
+                // Update if no audio URL or if we want to override
+                if (!scene.ambientAudioUrl || scene.ambientAudioUrl !== soundscape.url) {
+                    await ctx.db.patch(scene._id, {
+                        ambientAudioUrl: soundscape.url,
+                    });
+                    updatedCount++;
+                    console.log(`[AUDIO SOVEREIGN] ✓ Updated: ${scene.title} (${domain}) → ${soundscape.description}`);
+                } else {
+                    skippedCount++;
+                    console.log(`[AUDIO SOVEREIGN] ○ Skipped: ${scene.title} (already configured)`);
+                }
+            } else {
+                skippedCount++;
+                console.log(`[AUDIO SOVEREIGN] ○ Skipped: ${scene.title} (no soundscape defined for ${domain})`);
+            }
+        }
+
+        console.log("═══════════════════════════════════════════════════════════════");
+        console.log(`[AUDIO SOVEREIGN] COMPLETE`);
+        console.log(`  ✓ Updated: ${updatedCount} scenes`);
+        console.log(`  ○ Skipped: ${skippedCount} scenes`);
+        console.log("═══════════════════════════════════════════════════════════════");
+
+        return {
+            success: true,
+            updatedCount,
+            skippedCount,
+            message: `Audio seeding complete. ${updatedCount} scenes now have ambient soundscapes.`,
+        };
+    },
+});

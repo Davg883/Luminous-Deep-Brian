@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Libre_Baskerville, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/auth/ConvexClientProvider";
-import { AmbientProvider } from "@/components/narrative/AmbientContext";
-import AmbientEngine from "@/components/narrative/AmbientEngine";
+import { AudioSovereignProvider, AudioSovereignControl } from "@/components/narrative/AudioSovereign";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -39,10 +38,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${libreBaskerville.variable} ${jetbrainsMono.variable} antialiased`}>
         <ConvexClientProvider>
-          <AmbientProvider>
-            <AmbientEngine />
+          <AudioSovereignProvider>
+            <AudioSovereignControl />
             {children}
-          </AmbientProvider>
+          </AudioSovereignProvider>
         </ConvexClientProvider>
       </body>
     </html>

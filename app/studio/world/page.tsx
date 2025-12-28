@@ -38,7 +38,7 @@ export default function WorldMapPage() {
                 <IntegrityStat label="Reflections" value={integrity.totalReflections} icon={User} color="rose" />
                 <div className="col-span-2 md:col-span-1 flex flex-col justify-center text-center">
                     <span className="text-[10px] font-mono uppercase text-gray-500">Last Updated</span>
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-gray-600" suppressHydrationWarning>
                         {integrity.lastUpdated ? new Date(integrity.lastUpdated).toLocaleDateString() : 'N/A'}
                     </span>
                 </div>

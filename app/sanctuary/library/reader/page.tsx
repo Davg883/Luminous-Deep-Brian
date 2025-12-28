@@ -63,7 +63,7 @@ export default function LibraryIndexPage() {
                                         {signal.title || "Untitled Signal"}
                                     </h3>
                                     <div className="flex items-center gap-4 mt-2">
-                                        <span className="text-[10px] uppercase tracking-wider font-mono text-stone-600 group-hover:text-stone-500">
+                                        <span className="text-[10px] uppercase tracking-wider font-mono text-stone-600 group-hover:text-stone-500" suppressHydrationWarning>
                                             {new Date(signal.publishedAt).toLocaleDateString()}
                                         </span>
                                         <span className="text-[9px] text-stone-700 font-mono lowercase">

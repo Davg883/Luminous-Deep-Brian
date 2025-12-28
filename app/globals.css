@@ -196,4 +196,82 @@ body {
   .bg-gradient-radial {
     background: radial-gradient(circle at center, var(--tw-gradient-stops));
   }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SANCTUARY AUDIO-REACTIVE STYLES
+     These classes sync with the 40Hz binaural beat
+     ═══════════════════════════════════════════════════════════════ */
+
+  /* Base breathing glow - controlled by CSS custom property --pulse-intensity */
+  .sanctuary-breathing {
+    transition: box-shadow 0.15s ease-out, opacity 0.15s ease-out;
+  }
+
+  .sanctuary-breathing-cyan {
+    box-shadow:
+      0 0 calc(15px * var(--pulse-intensity, 0)) rgba(14, 165, 233, calc(0.3 * var(--pulse-intensity, 0))),
+      0 0 calc(30px * var(--pulse-intensity, 0)) rgba(14, 165, 233, calc(0.2 * var(--pulse-intensity, 0))),
+      0 0 calc(60px * var(--pulse-intensity, 0)) rgba(14, 165, 233, calc(0.1 * var(--pulse-intensity, 0)));
+  }
+
+  .sanctuary-breathing-amber {
+    box-shadow:
+      0 0 calc(15px * var(--pulse-intensity, 0)) rgba(245, 158, 11, calc(0.3 * var(--pulse-intensity, 0))),
+      0 0 calc(30px * var(--pulse-intensity, 0)) rgba(245, 158, 11, calc(0.2 * var(--pulse-intensity, 0))),
+      0 0 calc(60px * var(--pulse-intensity, 0)) rgba(245, 158, 11, calc(0.1 * var(--pulse-intensity, 0)));
+  }
+
+  .sanctuary-breathing-emerald {
+    box-shadow:
+      0 0 calc(15px * var(--pulse-intensity, 0)) rgba(16, 185, 129, calc(0.3 * var(--pulse-intensity, 0))),
+      0 0 calc(30px * var(--pulse-intensity, 0)) rgba(16, 185, 129, calc(0.2 * var(--pulse-intensity, 0))),
+      0 0 calc(60px * var(--pulse-intensity, 0)) rgba(16, 185, 129, calc(0.1 * var(--pulse-intensity, 0)));
+  }
+
+  /* Text glow that responds to audio */
+  .sanctuary-text-glow-cyan {
+    text-shadow:
+      0 0 calc(10px * var(--pulse-intensity, 0)) rgba(14, 165, 233, var(--pulse-intensity, 0)),
+      0 0 calc(20px * var(--pulse-intensity, 0)) rgba(14, 165, 233, calc(0.5 * var(--pulse-intensity, 0)));
+  }
+
+  /* Border glow effect */
+  .sanctuary-border-glow {
+    position: relative;
+  }
+
+  .sanctuary-border-glow::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg,
+        rgba(14, 165, 233, calc(0.5 * var(--pulse-intensity, 0))),
+        rgba(14, 165, 233, 0),
+        rgba(14, 165, 233, calc(0.5 * var(--pulse-intensity, 0))));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: var(--pulse-intensity, 0);
+    transition: opacity 0.15s ease-out;
+  }
+
+  /* Keyframe for fallback static pulse when audio not playing */
+  @keyframes sanctuary-pulse-fallback {
+
+    0%,
+    100% {
+      --pulse-intensity: 0.3;
+    }
+
+    50% {
+      --pulse-intensity: 0.7;
+    }
+  }
+
+  .sanctuary-pulse-static {
+    animation: sanctuary-pulse-fallback 2s ease-in-out infinite;
+  }
 }

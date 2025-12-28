@@ -84,7 +84,7 @@ export default function SignalReceiver({ isOpen, onClose }: SignalReceiverProps)
                                                     {signal.title}
                                                 </h3>
                                                 <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-[10px] uppercase tracking-wider font-mono text-stone-600 group-hover:text-stone-500">
+                                                    <span className="text-[10px] uppercase tracking-wider font-mono text-stone-600 group-hover:text-stone-500" suppressHydrationWarning>
                                                         {new Date(signal.publishedAt).toLocaleDateString()}
                                                     </span>
                                                     {signal.isLocked && (

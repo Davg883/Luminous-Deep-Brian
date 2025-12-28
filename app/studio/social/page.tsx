@@ -652,7 +652,7 @@ export default function SocialStudioPage() {
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span className="text-sm font-medium">{campaign.title}</span>
-                                                        <span className="text-xs text-slate-400">{new Date(campaign._creationTime).toLocaleDateString()}</span>
+                                                        <span className="text-xs text-slate-400" suppressHydrationWarning>{new Date(campaign._creationTime).toLocaleDateString()}</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
