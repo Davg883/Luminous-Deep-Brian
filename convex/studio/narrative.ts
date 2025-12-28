@@ -12,9 +12,9 @@ export const generateEpisode = action({
         length: v.string(),
     },
     handler: async (ctx, args) => {
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            throw new Error("GEMINI_API_KEY is not defined in environment variables.");
+            throw new Error("GOOGLE_API_KEY or GEMINI_API_KEY is not defined in Convex environment variables.");
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
