@@ -386,44 +386,30 @@ export function useAudioSovereignSafe(): AudioSovereignContextType | null {
 export function AudioSovereignControl() {
     const audio = useAudioSovereignSafe();
     const [showVolume, setShowVolume] = useState(false);
-    const [isLongPressing, setIsLongPressing] = useState(false);
-    const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     if (!audio) return null;
 
     const { isMuted, volume, hasInteracted, isPlaying, lowFrequencyAmplitude, toggleMute, setVolume, activateSanctuary } = audio;
 
-    const handleMouseDown = () => {
-        longPressTimerRef.current = setTimeout(() => {
-            setIsLongPressing(true);
-            setShowVolume(true);
-        }, 500);
-    };
-
-    const handleMouseUp = () => {
-        if (longPressTimerRef.current) {
-            clearTimeout(longPressTimerRef.current);
+    const handleMouseEnter = () => {
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
         }
-
-        if (!isLongPressing) {
-            // Short tap - toggle mute or activate
-            if (!hasInteracted) {
-                activateSanctuary();
-            } else {
-                toggleMute();
-            }
-        }
-
-        setIsLongPressing(false);
+        setShowVolume(true);
     };
 
     const handleMouseLeave = () => {
-        if (longPressTimerRef.current) {
-            clearTimeout(longPressTimerRef.current);
+        // Keep volume slider visible for a moment after leaving
+        hideTimeoutRef.current = setTimeout(() => setShowVolume(false), 1500);
+    };
+
+    const handleClick = () => {
+        if (!hasInteracted) {
+            activateSanctuary();
+        } else {
+            toggleMute();
         }
-        setIsLongPressing(false);
-        // Keep volume slider visible for a moment
-        setTimeout(() => setShowVolume(false), 2000);
     };
 
     // Breathing glow based on 40Hz amplitude
@@ -434,7 +420,7 @@ export function AudioSovereignControl() {
             className="fixed top-6 right-6 z-50 flex items-center gap-3"
             onMouseLeave={handleMouseLeave}
         >
-            {/* Volume Slider (revealed on long press) */}
+            {/* Volume Slider (revealed on hover) */}
             <div className={clsx(
                 "transition-all duration-300 origin-right overflow-hidden",
                 showVolume
@@ -456,10 +442,8 @@ export function AudioSovereignControl() {
 
             {/* Sound Wave Button */}
             <button
-                onMouseDown={handleMouseDown}
-                onMouseUp={handleMouseUp}
-                onTouchStart={handleMouseDown}
-                onTouchEnd={handleMouseUp}
+                onClick={handleClick}
+                onMouseEnter={handleMouseEnter}
                 className={clsx(
                     "relative p-3 rounded-full glass-morphic backdrop-blur-xl transition-all duration-300 group",
                     "bg-black/40 border border-white/20 hover:border-white/40",
@@ -467,8 +451,7 @@ export function AudioSovereignControl() {
                 )}
                 style={{
                     boxShadow: isPlaying && !isMuted
-                        ? `0 0 ${20 * glowIntensity}px rgba(14, 165, 233, ${glowIntensity * 0.5}), 
-                           0 0 ${40 * glowIntensity}px rgba(14, 165, 233, ${glowIntensity * 0.3})`
+                        ? `0 0 ${20 * glowIntensity}px rgba(14, 165, 233, ${glowIntensity * 0.5}), 0 0 ${40 * glowIntensity}px rgba(14, 165, 233, ${glowIntensity * 0.3})`
                         : undefined
                 }}
                 aria-label={!hasInteracted ? "Activate Sanctuary Audio" : isMuted ? "Unmute" : "Mute"}
