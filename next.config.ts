@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Disable Turbopack due to Windows symlink issues with CopilotKit
+  turbopack: {
+    // empty config to allow webpack fallback
+  },
   reactCompiler: true,
   images: {
     remotePatterns: [

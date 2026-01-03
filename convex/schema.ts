@@ -424,6 +424,48 @@ export default defineSchema({
         .index("by_status", ["status"]),
 
     // ═══════════════════════════════════════════════════════════════
+    // ROOM STATE — Spatial Persistence for A2UI
+    // Stores agent-generated UI component state per room per user
+    // ═══════════════════════════════════════════════════════════════
+    room_state: defineTable({
+        userId: v.string(),           // Sovereign Memory Owner (Clerk subject)
+        roomId: v.string(),           // e.g., "sanctuary", "workshop", "control_room"
+        activeComponent: v.optional(v.string()), // e.g., "BunkerTerminal"
+        componentProps: v.optional(v.string()),  // JSON stringified props
+        currentObjective: v.optional(v.string()),
+        currentStatus: v.optional(v.string()),
+        lastUpdated: v.number(),
+    }).index("by_user_room", ["userId", "roomId"])
+        .index("by_room", ["roomId"]),
+
+    // CHAT MESSAGES - Sovereign Memory (Per-User Threads)
+    messages: defineTable({
+        userId: v.string(),
+        role: v.string(), // "user" | "assistant" | "system"
+        content: v.string(),
+        sourceId: v.optional(v.string()), // CopilotKit message id for de-dupe
+        createdAt: v.number(),
+    })
+        .index("by_user_created", ["userId", "createdAt"])
+        .index("by_user_source", ["userId", "sourceId"]),
+
+    // LEDGER - Sovereign Spend Records
+    ledger: defineTable({
+        userId: v.string(),
+        amountGBP: v.number(),
+        allocation: v.string(),
+        merchant: v.optional(v.string()),
+        date: v.string(), // Date on the receipt or scan
+        scanId: v.optional(v.string()),
+        verifiedBy: v.optional(v.string()), // e.g., "Julian"
+        signedAt: v.optional(v.number()),
+        signedBy: v.optional(v.string()),
+        createdAt: v.number(),
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_created", ["userId", "createdAt"]),
+
+    // ═══════════════════════════════════════════════════════════════
     // WEBHOOK EVENTS — Idempotency Tracking
     // Prevents double-processing of Stripe/Clerk webhook events
     // ═══════════════════════════════════════════════════════════════
@@ -433,4 +475,42 @@ export default defineSchema({
         status: v.string(), // "processing" | "processed" | "failed"
         processedAt: v.number(),
     }).index("by_event_id", ["eventId"]),
+
+    // ═══════════════════════════════════════════════════════════════
+    // THE NARRATIVE — Linear Episodes (The Script)
+    // ═══════════════════════════════════════════════════════════════
+    stories: defineTable({
+        slug: v.string(),          // "transmission-001"
+        title: v.string(),         // "The System Knows"
+        content: v.string(),       // Markdown text
+        tier: v.string(),          // "free" | "patron"
+        author: v.string(),        // "Thea Lux" | "Julian"
+        roomId: v.string(),        // "study" (Where this story "lives")
+        publishedAt: v.number(),
+    }).index("by_slug", ["slug"]),
+
+    // ═══════════════════════════════════════════════════════════════
+    // THE INFINITE ARCHIVE — Database-Driven Lore (The Artifacts)
+    // Brian can search this with visual keywords to pull relevant artifacts
+    // ═══════════════════════════════════════════════════════════════
+    artifacts: defineTable({
+        title: v.string(),                // e.g., "THE SOLENT STRAIT"
+        content: v.string(),              // The lore/story text
+        type: v.union(                    // Classification
+            v.literal("Myth"),
+            v.literal("Signal"),
+            v.literal("Reflection"),
+            v.literal("Visual")
+        ),
+        keywords: v.array(v.string()),    // ["solent", "map", "fortibus"] — for visual matching
+        relatedStoryId: v.optional(v.id("stories")), // Link to the generative source
+        // Metadata
+        createdAt: v.optional(v.number()),
+        createdBy: v.optional(v.string()),
+    })
+        .index("by_type", ["type"])
+        .searchIndex("search_content", {
+            searchField: "content",
+            filterFields: ["type"]
+        }),
 });

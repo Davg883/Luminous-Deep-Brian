@@ -275,3 +275,142 @@ body {
     animation: sanctuary-pulse-fallback 2s ease-in-out infinite;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LUMINOUS DEEP OVERRIDES
+   Forcibly hide standard CopilotKit Popup to enforce "Brain" UI
+   ═══════════════════════════════════════════════════════════════ */
+[data-copilot-popup="true"],
+[data-copilotkit-banner],
+[data-copilotkit-toast],
+[data-copilotkit-notification],
+.copilotKitPopup,
+.copilot-kit-popup,
+div[class*="copilotKitPopup"],
+div[class*="CopilotPopup"],
+[aria-label="Copilot Chat"],
+.copilotKitBanner,
+.copilotkitToast,
+.copilotkitNotification,
+div[class*="copilotkitBanner"],
+div[class*="copilotKitBanner"],
+div[class*="CopilotKitBanner"],
+div[class*="copilotkitToast"],
+div[class*="CopilotKitToast"],
+div[class*="copilotkitNotification"],
+div[class*="CopilotKitNotification"],
+button[class*="copilotKitButton"],
+div[class*="copilot-kit-"],
+div[id^="copilot-"],
+.copilot-kit-toast {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  z-index: -9999 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  /* Ensure it doesn't take up layout space */
+  max-width: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+/* NUCLEAR OPTION FOR POPUP */
+.copilotKitPopup, .copilotKitButton, .copilotKitSidebar {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* NUCLEAR OPTION V2: kill any remaining CopilotKit banners */
+[id^="copilot-kit"],
+[id^="copilotkit"],
+[id^="CopilotKit"],
+.copilotKitPopup,
+.copilotKitButton,
+.ck-fixed,
+[class*="CopilotKit"] {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* THE NUCLEAR OPTION V3 */
+/* Target every possible variation of the CopilotKit default UI */
+.copilotKitPopup,
+.copilotKitButton,
+.copilotKitSidebar,
+div[role="status"],
+div[class*="toast"],
+.copilotKitToast,
+.copilotKitSnackbar,
+.ck-toast,
+div[class*="copilotKit"],
+div[class*="CopilotKit"],
+div[id^="copilot-kit"],
+.ck-root,
+.ck-popup,
+.ck-sidebar {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  z-index: -9999 !important;
+}
+
+.brian-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(2, 6, 23, 0.6);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.2);
+  overflow: hidden;
+  animation: brian-shimmer 3.6s ease-in-out infinite;
+}
+
+.brian-avatar--active {
+  box-shadow: 0 0 26px rgba(16, 185, 129, 0.5);
+  filter: saturate(1.15) brightness(1.1);
+}
+
+.brian-avatar--isabella {
+  box-shadow: 0 0 28px rgba(147, 51, 234, 0.65);
+  animation: brian-violet 1.4s ease-in-out infinite;
+}
+
+@keyframes brian-violet {
+  0%,
+  100% {
+    filter: saturate(1) brightness(0.95);
+    opacity: 0.85;
+  }
+  50% {
+    filter: saturate(1.2) brightness(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes brian-shimmer {
+  0%,
+  100% {
+    filter: saturate(1) brightness(0.95);
+    opacity: 0.85;
+  }
+  50% {
+    filter: saturate(1.1) brightness(1.05);
+    opacity: 1;
+  }
+}

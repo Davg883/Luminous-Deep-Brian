@@ -3,6 +3,7 @@ import { Inter, Libre_Baskerville, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/auth/ConvexClientProvider";
 import { AudioSovereignProvider, AudioSovereignControl } from "@/components/narrative/AudioSovereign";
+import { CopilotKit } from "@copilotkit/react-core";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -37,12 +38,23 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${libreBaskerville.variable} ${jetbrainsMono.variable} antialiased`} suppressHydrationWarning>
-        <ConvexClientProvider>
-          <AudioSovereignProvider>
-            <AudioSovereignControl />
-            {children}
-          </AudioSovereignProvider>
-        </ConvexClientProvider>
+        <style>{`
+          .copilotKitPopup {
+            display: none !important;
+          }
+        `}</style>
+        <CopilotKit
+          runtimeUrl="/api/copilotkit"
+          publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_PUBLIC_KEY}
+          showDevConsole={false}
+        >
+          <ConvexClientProvider>
+            <AudioSovereignProvider>
+              <AudioSovereignControl />
+              {children}
+            </AudioSovereignProvider>
+          </ConvexClientProvider>
+        </CopilotKit>
       </body>
     </html>
   );

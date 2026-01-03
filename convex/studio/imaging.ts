@@ -21,7 +21,7 @@ cloudinary.config({
 // ═══════════════════════════════════════════════════════════════
 // THE DARKROOM v2 - Nano Banana Pro Protocol
 // Advanced multimodal generation with reasoning-diffusion engine
-// Uses gemini-2.0-flash-exp for native image generation
+// Uses Gemini 3 Pro Image for primary generation with Gemini 2.5 Flash Image fallback
 // ═══════════════════════════════════════════════════════════════
 
 // Style modifiers per agent voice - Enhanced for Nano Banana Pro
@@ -129,7 +129,7 @@ async function nanoBananaProCore(
 
     try {
         // PRIMARY: Gemini 3 Pro Image (Nano Banana Pro)
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -181,7 +181,7 @@ async function nanoBananaProCore(
         // FALLBACK: Gemini 2.5 Flash Image
         try {
             // Model: gemini-2.5-flash-image
-            const fbResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`, {
+            const fbResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -596,8 +596,8 @@ export const generateAndUploadImage = action({
         console.log(`[DARKROOM] Developing image for ${args.agentVoice} via Gemini 2.0 Flash Image...`);
 
         try {
-            // Use Gemini 2.0 Flash Preview Image Generation model
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`, {
+            // Use Gemini 2.5 Flash Image Generation model
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

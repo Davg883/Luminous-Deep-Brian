@@ -29,6 +29,20 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Project Docs
+
+- [Runtime Architecture](docs/Architecture_Runtime.md)
+- [Chat Persistence](docs/Chat_Persistence.md)
+- [AI Model Policy](docs/AI_Model_Policy.md)
+- [Registry Components](docs/Registry_Components.md)
+- [Operations Runbook](docs/Operations_Runbook.md)
+- [Scaling & Cost Efficiency](docs/05_Scaling.md)
+
+## Sovereign Architecture
+
+- [AI/UI Interface Report](AI_UI_Interface_Report.md)
+- [Sovereign Agentic Architecture](docs/AI_UI_Interface_Report.md)
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

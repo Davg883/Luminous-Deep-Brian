@@ -34,9 +34,15 @@ export const getLibraryState = query({
         // Deduplicate Myths by Slug
         const uniqueMyths = Array.from(new Map(myths.map(m => [m.slug, m])).values());
 
+        const visuals = await ctx.db
+            .query("artifacts")
+            .withIndex("by_type", (q) => q.eq("type", "Visual"))
+            .collect();
+
         return {
             myths: uniqueMyths.sort((a, b) => (a.releaseDate || 0) - (b.releaseDate || 0)),
             series: series,
+            visuals: visuals.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
         };
     },
 });

@@ -25,6 +25,9 @@ export default function LibraryPage() {
     }
 
     const { myths, series } = libraryState;
+    const visuals = Array.isArray((libraryState as { visuals?: unknown }).visuals)
+        ? (libraryState as { visuals: Array<{ _id: string; title: string; content?: string; createdAt?: number }> }).visuals
+        : [];
 
     return (
         <div className="min-h-screen bg-[#0a0a0f] text-slate-200 p-8 md:p-16 pb-40">
@@ -159,6 +162,57 @@ export default function LibraryPage() {
                         {series.length === 0 && (
                             <div className="col-span-full text-center py-12 border border-dashed border-white/10 rounded-lg">
                                 <span className="text-slate-600 font-mono text-xs">NO SERIES BROADCASTING</span>
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                {/* ROW 3: VISUAL ARCHIVE */}
+                <section>
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="h-px flex-1 bg-white/10" />
+                        <h2 className="font-mono text-xs text-sky-400 uppercase tracking-[0.2em]">
+                            Visual Archive
+                        </h2>
+                        <div className="h-px flex-1 bg-white/10" />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {visuals.map((visual) => (
+                            <div
+                                key={visual._id}
+                                className="group relative block aspect-[4/3] bg-slate-900 rounded-lg overflow-hidden border border-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:border-sky-400/40"
+                            >
+                                {visual.content ? (
+                                    <img
+                                        src={visual.content}
+                                        alt={visual.title}
+                                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-70 group-hover:opacity-100"
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                                        <div className="absolute inset-0 bg-[url('https://res.cloudinary.com/dptqxjhb8/image/upload/v1735258900/static_noise_placeholder.png')] opacity-20 mix-blend-overlay" />
+                                        <span className="text-slate-600 font-mono text-xs relative z-10">VISUAL LOST</span>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-90 transition-opacity" />
+
+                                <div className="absolute inset-0 p-6 flex flex-col justify-end">
+                                    <div className="font-mono text-[10px] text-sky-300 mb-2 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-500">
+                                        GENERATED VISUAL
+                                    </div>
+                                    <h3 className="text-xl font-serif font-bold text-white mb-2 leading-tight">
+                                        {visual.title}
+                                    </h3>
+                                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono uppercase tracking-wider group-hover:text-sky-300 transition-colors">
+                                        {visual.createdAt ? new Date(visual.createdAt).toLocaleDateString("en-GB") : "ARCHIVED"}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {visuals.length === 0 && (
+                            <div className="col-span-full text-center py-12 border border-dashed border-white/10 rounded-lg">
+                                <span className="text-slate-600 font-mono text-xs">NO VISUALS ARCHIVED</span>
                             </div>
                         )}
                     </div>

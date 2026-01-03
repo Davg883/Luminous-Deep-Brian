@@ -12,6 +12,7 @@ import RevealCard from "@/components/narrative/RevealCard";
 import SanctuaryCompass from "@/components/layout/SanctuaryCompass";
 import EdgeNav from "@/components/narrative/EdgeNav";
 import { SanctuaryTerminal } from "@/components/narrative/SanctuaryTerminal";
+import { ControlRoomHUD } from "@/components/sanctuary/ControlRoomHUD";
 import {
     Zap,
     Radio,
@@ -141,6 +142,9 @@ export default function LuminousDeepPage() {
                 }}
             />
 
+            {/* Sovereign Sandbox HUD (Generative UI Layer) */}
+            <ControlRoomHUD roomId="control_room" onChangeRoom={() => { }} />
+
             {/* THE PIT - Central Hotspot */}
             <div className="fixed inset-0 flex items-center justify-center z-20 pointer-events-none">
                 <motion.button
@@ -223,7 +227,12 @@ export default function LuminousDeepPage() {
                             className="fixed inset-0 z-40 flex items-center justify-center p-4 pointer-events-none"
                         >
                             <div className="w-full max-w-3xl pointer-events-auto">
-                                <SanctuaryTerminal isControlRoom={true} />
+                                <SanctuaryTerminal
+                                    isControlRoom={true}
+                                    messages={[]}
+                                    isLoading={false}
+                                    onSendMessage={() => { }}
+                                />
                                 <button
                                     onClick={() => setIsPitOpen(false)}
                                     className="mt-4 mx-auto block text-zinc-500 hover:text-white text-xs uppercase tracking-widest transition-colors"
