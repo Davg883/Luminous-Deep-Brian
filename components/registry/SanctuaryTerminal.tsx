@@ -46,7 +46,11 @@ export function SanctuaryTerminal() {
     const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
     // Defensive: Ensure we always have an array
     const safeMessages = visibleMessages || [];
-    const displayMessages = safeMessages.length > 0 ? safeMessages : localMessages;
+    // MERGE STRATEGY: Combine Copilot messages with Local System messages
+    // We deduplicate by ID to ensure stability
+    const displayMessages = [...safeMessages, ...localMessages].filter((msg, index, self) =>
+        index === self.findIndex((m) => m.id === msg.id || (m.content === msg.content && m.role === msg.role))
+    );
 
     // PATRON RITUAL HOOK (The Welcome)
     useEffect(() => {
