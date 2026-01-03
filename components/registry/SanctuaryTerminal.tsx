@@ -415,12 +415,14 @@ export function SanctuaryTerminal() {
             }
 
             let assistantRendered = false;
-            await appendMessage(
-                new TextMessage({
-                    role: MessageRole.User,
-                    content: content,
-                })
-            );
+            if (content && content.trim().length > 0) {
+                await appendMessage(
+                    new TextMessage({
+                        role: MessageRole.User,
+                        content: content,
+                    })
+                );
+            }
 
             if (runChatCompletion) {
                 const completion = await runChatCompletion();
